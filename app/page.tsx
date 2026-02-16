@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { getDashboardStats, getRecentJobs, getLowStockMaterials } from '@/actions/dashboard'
+import { cn } from '@/lib/utils'
 
 const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   new: { label: 'รับงาน', variant: 'outline' },
@@ -34,9 +35,11 @@ const priorityMap: Record<string, { label: string; color: string }> = {
 }
 
 export default async function DashboardPage() {
-  const statsData = await getDashboardStats()
-  const recentJobs = await getRecentJobs()
-  const lowStockItems = await getLowStockMaterials()
+  const [statsData, recentJobs, lowStockItems] = await Promise.all([
+    getDashboardStats(),
+    getRecentJobs(),
+    getLowStockMaterials(),
+  ])
 
   const stats = [
     { label: 'งานทั้งหมด', value: statsData.totalJobs, icon: ClipboardList, color: 'text-cyan', bg: 'bg-cyan/10' },
