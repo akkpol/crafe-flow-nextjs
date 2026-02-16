@@ -50,6 +50,7 @@ export interface Material {
     costPrice: number
     sellingPrice: number
     inStock: number
+    minStock: number
     wasteFactor: number
 }
 

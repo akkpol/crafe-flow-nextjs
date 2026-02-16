@@ -137,10 +137,28 @@ export default function KanbanPage() {
     const [jobs, setJobs] = useState<KanbanJob[]>(demoJobs)
     const [activeJob, setActiveJob] = useState<KanbanJob | null>(null)
 
+    const [mounted, setMounted] = useState(false)
+
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
         useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
     )
+
+    // Fix hydration mismatch for dnd-kit
+    if (typeof window !== 'undefined' && !mounted) {
+        setMounted(true)
+    }
+
+    if (!mounted) {
+        return (
+            <div className="min-h-screen">
+                <PageHeader title="📋 กระดานงาน" subtitle="กำลังโหลด..." />
+                <div className="p-4 flex justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+            </div>
+        )
+    }
 
     const handleDragStart = (event: DragStartEvent) => {
         const job = event.active.data.current?.job as KanbanJob

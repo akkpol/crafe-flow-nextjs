@@ -14,27 +14,7 @@ import {
   Receipt,
 } from 'lucide-react'
 import Link from 'next/link'
-
-// Demo data (จะเปลี่ยนเป็น Supabase query เมื่อเชื่อมจริง)
-const stats = [
-  { label: 'งานทั้งหมด', value: 24, icon: ClipboardList, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
-  { label: 'กำลังผลิต', value: 8, icon: Factory, color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10' },
-  { label: 'รอติดตั้ง', value: 3, icon: Truck, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-  { label: 'เสร็จเดือนนี้', value: 12, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-]
-
-const recentJobs = [
-  { id: '1', title: 'ป้ายหน้าร้าน ABC Cafe', customer: 'คุณสมชาย', status: 'production', priority: 'high', deadline: '2026-02-20' },
-  { id: '2', title: 'ป้ายไวนิลงานเปิดตัว', customer: 'บ.XYZ', status: 'designing', priority: 'urgent', deadline: '2026-02-18' },
-  { id: '3', title: 'ตัวอักษรโลหะ LED', customer: 'คุณมาลี', status: 'new', priority: 'medium', deadline: '2026-02-25' },
-  { id: '4', title: 'สติกเกอร์กระจกร้าน', customer: 'คุณวิชัย', status: 'qc', priority: 'low', deadline: '2026-02-22' },
-  { id: '5', title: 'ป้ายอะคริลิค A3', customer: 'คุณจิรา', status: 'approved', priority: 'medium', deadline: '2026-02-28' },
-]
-
-const lowStockItems = [
-  { name: 'ไวนิลขาวเงา', current: 5, unit: 'ม้วน', min: 10 },
-  { name: 'หมึก Cyan', current: 2, unit: 'ลิตร', min: 5 },
-]
+import { getDashboardStats, getRecentJobs, getLowStockMaterials } from '@/actions/dashboard'
 
 const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   new: { label: 'รับงาน', variant: 'outline' },
@@ -53,7 +33,18 @@ const priorityMap: Record<string, { label: string; color: string }> = {
   urgent: { label: 'ด่วน!', color: 'text-red-500 font-bold' },
 }
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const statsData = await getDashboardStats()
+  const recentJobs = await getRecentJobs()
+  const lowStockItems = await getLowStockMaterials()
+
+  const stats = [
+    { label: 'งานทั้งหมด', value: statsData.totalJobs, icon: ClipboardList, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+    { label: 'กำลังผลิต/QC', value: statsData.production, icon: Factory, color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10' },
+    { label: 'กำลังติดตั้ง', value: statsData.installing, icon: Truck, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+    { label: 'เสร็จเดือนนี้', value: statsData.doneMonth, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  ]
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -154,30 +145,36 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-2">
-          {recentJobs.map((job) => (
-            <Card key={job.id} className="border-0 shadow-sm">
-              <CardContent className="p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{job.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{job.customer}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant={statusMap[job.status]?.variant || 'outline'} className="text-[10px] px-2 py-0.5">
-                        {statusMap[job.status]?.label || job.status}
-                      </Badge>
-                      <span className={`text-[10px] ${priorityMap[job.priority]?.color || ''}`}>
-                        {priorityMap[job.priority]?.label || job.priority}
-                      </span>
+          {recentJobs.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-4">บอร์ดว่างเปล่า เริ่มรับงานแรกเลย!</p>
+          ) : (
+            recentJobs.map((job) => (
+              <Card key={job.id} className="border-0 shadow-sm">
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{job.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{job.customer}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge variant={statusMap[job.status]?.variant || 'outline'} className="text-[10px] px-2 py-0.5">
+                          {statusMap[job.status]?.label || job.status}
+                        </Badge>
+                        <span className={`text-[10px] ${priorityMap[job.priority]?.color || ''}`}>
+                          {priorityMap[job.priority]?.label || job.priority}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[10px] text-muted-foreground">กำหนดส่ง</p>
+                      <p className="text-xs font-medium">
+                        {new Date(job.deadline).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-[10px] text-muted-foreground">กำหนดส่ง</p>
-                    <p className="text-xs font-medium">{new Date(job.deadline).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </div>
     </div>

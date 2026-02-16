@@ -1,226 +1,241 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
-import { cn } from '@/lib/utils'
 import {
-    FileText,
-    Receipt,
-    Search,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
     Plus,
-    ChevronRight,
+    Search,
+    MoreHorizontal,
+    FileText,
+    CreditCard,
+    AlertCircle,
     CheckCircle2,
-    Clock,
-    XCircle,
-    Banknote,
-    ArrowRight,
+    Clock
 } from 'lucide-react'
+import Link from 'next/link'
+import { getBillingStats, getRecentDocuments } from '@/actions/billing'
 
-type DocType = 'quotation' | 'invoice'
-type DocStatus = 'draft' | 'sent' | 'approved' | 'paid' | 'cancelled'
-
-interface BillingDoc {
-    id: string
-    docNumber: string
-    type: DocType
-    customer: string
-    items: string
-    total: number
-    status: DocStatus
-    createdAt: string
+// Define types for strict handling
+interface BillingStats {
+    toBeInvoiced: number;
+    overdue: number;
+    paidMonth: number;
+}
+interface BillingLineItem {
+    id: string; // Order Number
+    type: 'Quote' | 'Invoice';
+    customer: string;
+    date: string;
+    status: 'draft' | 'sent' | 'paid' | 'overdue';
+    amount: number;
 }
 
-const statusConfig: Record<DocStatus, { label: string; icon: React.ReactNode; color: string }> = {
-    draft: { label: 'ร่าง', icon: <FileText className="w-3 h-3" />, color: 'bg-muted text-muted-foreground' },
-    sent: { label: 'ส่งแล้ว', icon: <ArrowRight className="w-3 h-3" />, color: 'bg-cyan-100 text-cyan-700' },
-    approved: { label: 'อนุมัติ', icon: <CheckCircle2 className="w-3 h-3" />, color: 'bg-emerald-100 text-emerald-700' },
-    paid: { label: 'จ่ายแล้ว', icon: <Banknote className="w-3 h-3" />, color: 'bg-fuchsia-100 text-fuchsia-700' },
-    cancelled: { label: 'ยกเลิก', icon: <XCircle className="w-3 h-3" />, color: 'bg-red-100 text-red-700' },
+const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+    draft: { label: 'ร่าง (Draft)', variant: 'secondary' },
+    sent: { label: 'ส่งแล้ว (Sent)', variant: 'default' },
+    paid: { label: 'ชำระแล้ว (Paid)', variant: 'outline' },
+    overdue: { label: 'เกินกำหนด (Overdue)', variant: 'destructive' },
 }
-
-// Demo data
-const demoDocs: BillingDoc[] = [
-    { id: '1', docNumber: 'QT-2026-001', type: 'quotation', customer: 'คุณสมชาย', items: 'ป้ายหน้าร้าน ABC Cafe', total: 15000, status: 'approved', createdAt: '2026-02-15' },
-    { id: '2', docNumber: 'QT-2026-002', type: 'quotation', customer: 'บ.XYZ', items: 'ป้ายไวนิลงานเปิดตัว', total: 8500, status: 'sent', createdAt: '2026-02-14' },
-    { id: '3', docNumber: 'INV-2026-001', type: 'invoice', customer: 'คุณสมชาย', items: 'ป้ายหน้าร้าน ABC Cafe', total: 15000, status: 'paid', createdAt: '2026-02-16' },
-    { id: '4', docNumber: 'QT-2026-003', type: 'quotation', customer: 'คุณมาลี', items: 'ตัวอักษรโลหะ LED', total: 25000, status: 'draft', createdAt: '2026-02-16' },
-    { id: '5', docNumber: 'INV-2026-002', type: 'invoice', customer: 'บ.XYZ', items: 'ป้ายไวนิล 3x1.5 ม.', total: 8500, status: 'sent', createdAt: '2026-02-16' },
-    { id: '6', docNumber: 'QT-2026-004', type: 'quotation', customer: 'คุณวิชัย', items: 'สติกเกอร์กระจกร้าน', total: 3200, status: 'cancelled', createdAt: '2026-02-13' },
-]
 
 export default function BillingPage() {
-    const [activeTab, setActiveTab] = useState<'all' | DocType>('all')
-    const [search, setSearch] = useState('')
+    const [stats, setStats] = useState<BillingStats>({ toBeInvoiced: 0, overdue: 0, paidMonth: 0 })
+    const [documents, setDocuments] = useState<BillingLineItem[]>([])
+    const [loading, setLoading] = useState(true)
 
-    const filtered = demoDocs.filter(doc => {
-        const matchTab = activeTab === 'all' || doc.type === activeTab
-        const matchSearch = doc.customer.includes(search) || doc.docNumber.includes(search) || doc.items.includes(search)
-        return matchTab && matchSearch
-    })
-
-    const totalRevenue = demoDocs.filter(d => d.status === 'paid').reduce((sum, d) => sum + d.total, 0)
-    const pendingAmount = demoDocs.filter(d => d.status === 'sent' || d.status === 'approved').reduce((sum, d) => sum + d.total, 0)
+    useEffect(() => {
+        async function loadData() {
+            try {
+                const [statsData, docsData] = await Promise.all([
+                    getBillingStats(),
+                    getRecentDocuments()
+                ])
+                setStats(statsData)
+                setDocuments(docsData)
+            } catch (error) {
+                console.error('Failed to load billing data', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadData()
+    }, [])
 
     return (
-        <div className="space-y-4">
-            <PageHeader title="💰 บิล" subtitle="ใบเสนอราคา & ใบแจ้งหนี้">
-                <Button size="sm" className="h-9 gap-1.5 shadow-sm">
-                    <Plus className="w-4 h-4" />
-                    สร้างบิล
+        <div className="space-y-6 pb-20 md:pb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <PageHeader
+                    title="💰 บิล & ใบเสนอราคา"
+                    subtitle="จัดการเอกสารการเงินและสถานะการชำระเงิน"
+                />
+                <Button asChild>
+                    <Link href="/billing/new">
+                        <Plus className="w-4 h-4 mr-2" />
+                        สร้างใบเสนอราคา
+                    </Link>
                 </Button>
-            </PageHeader>
+            </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 gap-3 px-4">
-                <Card className="border-0 shadow-sm">
-                    <CardContent className="p-3">
-                        <div className="flex items-center gap-2">
-                            <div className="p-2 rounded-lg bg-emerald-500/10">
-                                <Banknote className="w-4 h-4 text-emerald-500" />
-                            </div>
-                            <div>
-                                <p className="text-lg font-bold">฿{totalRevenue.toLocaleString()}</p>
-                                <p className="text-[10px] text-muted-foreground">รับแล้วเดือนนี้</p>
-                            </div>
-                        </div>
+            {/* KPI Cards */}
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">รอวางบิล / เก็บเงิน</CardTitle>
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{stats.toBeInvoiced} งาน</div>
+                        <p className="text-xs text-muted-foreground">
+                            งานที่ผลิตเสร็จแล้วแต่ยังไม่ได้เงิน
+                        </p>
                     </CardContent>
                 </Card>
-                <Card className="border-0 shadow-sm">
-                    <CardContent className="p-3">
-                        <div className="flex items-center gap-2">
-                            <div className="p-2 rounded-lg bg-yellow-500/10">
-                                <Clock className="w-4 h-4 text-yellow-500" />
-                            </div>
-                            <div>
-                                <p className="text-lg font-bold">฿{pendingAmount.toLocaleString()}</p>
-                                <p className="text-[10px] text-muted-foreground">รอรับเงิน</p>
-                            </div>
-                        </div>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">เกินกำหนดชำระ</CardTitle>
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-destructive">{stats.overdue} รายการ</div>
+                        <p className="text-xs text-muted-foreground">
+                            กรุณาติดตามลูกค้าโดยด่วน
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">ยอดรับเดือนนี้</CardTitle>
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-600">{stats.paidMonth} งาน</div>
+                        <p className="text-xs text-muted-foreground">
+                            (คำนวณจากงานที่สถานะ Done)
+                        </p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Search */}
-            <div className="px-4">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                        placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="pl-10 h-12 text-base"
-                    />
-                </div>
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="flex gap-2 px-4">
-                {[
-                    { key: 'all' as const, label: '📋 ทั้งหมด' },
-                    { key: 'quotation' as const, label: '📄 ใบเสนอราคา' },
-                    { key: 'invoice' as const, label: '🧾 ใบแจ้งหนี้' },
-                ].map((tab) => (
-                    <button
-                        key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
-                        className={cn(
-                            'px-3 py-1.5 rounded-full text-xs font-medium transition-colors touch-target',
-                            activeTab === tab.key
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted text-muted-foreground'
-                        )}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
-
-            {/* Document List */}
-            <div className="px-4 pb-8 space-y-2">
-                {filtered.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                        <Receipt className="w-10 h-10 mb-2 opacity-30" />
-                        <p className="text-sm">ไม่พบเอกสาร</p>
+            {/* Recent Documents */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>เอกสารล่าสุด</CardTitle>
+                    <div className="flex items-center pt-2">
+                        <div className="relative max-w-sm w-full">
+                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="ค้นหาตามชื่อลูกค้า หรือเลขที่เอกสาร..."
+                                className="pl-8"
+                            />
+                        </div>
                     </div>
-                )}
-
-                {filtered.map((doc) => {
-                    const status = statusConfig[doc.status]
-                    const isQuotation = doc.type === 'quotation'
-
-                    return (
-                        <Card key={doc.id} className="border-0 shadow-sm cursor-pointer active:scale-[0.98] transition-transform">
-                            <CardContent className="p-3">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="flex items-start gap-3">
-                                        {/* Icon */}
-                                        <div className={cn(
-                                            'p-2 rounded-lg mt-0.5',
-                                            isQuotation ? 'bg-cyan-500/10' : 'bg-fuchsia-500/10'
-                                        )}>
-                                            {isQuotation
-                                                ? <FileText className="w-4 h-4 text-cyan-500" />
-                                                : <Receipt className="w-4 h-4 text-fuchsia-500" />
-                                            }
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[100px]">เลขที่</TableHead>
+                                <TableHead>ประเภท</TableHead>
+                                <TableHead>ลูกค้า</TableHead>
+                                <TableHead className="hidden md:table-cell">วันที่</TableHead>
+                                <TableHead>สถานะ</TableHead>
+                                <TableHead className="text-right">ยอดเงิน</TableHead>
+                                <TableHead className="w-[50px]"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="text-center py-8">
+                                        <div className="flex justify-center items-center gap-2 text-muted-foreground">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                            กำลังโหลดข้อมูล...
                                         </div>
+                                    </TableCell>
+                                </TableRow>
+                            ) : documents.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                        ยังไม่มีเอกสารในระบบ
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                documents.map((doc) => {
+                                    const statusConf = statusMap[doc.status] || statusMap.draft
+                                    return (
+                                        <TableRow key={doc.id}>
+                                            <TableCell className="font-medium">{doc.id}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline">{doc.type}</Badge>
+                                            </TableCell>
+                                            <TableCell>{doc.customer}</TableCell>
+                                            <TableCell className="hidden md:table-cell text-muted-foreground">
+                                                {doc.date}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    variant={statusConf.variant}
+                                                    className={doc.status === 'paid' ? 'text-green-600 border-green-200 bg-green-50 hover:bg-green-100' : ''}
+                                                >
+                                                    {statusConf.label}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right font-medium">
+                                                {doc.amount ? `${doc.amount.toLocaleString()} ฿` : '-'}
+                                            </TableCell>
+                                            <TableCell>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                                            <span className="sr-only">Open menu</span>
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuLabel>การจัดการ</DropdownMenuLabel>
+                                                        <DropdownMenuItem>
+                                                            <FileText className="mr-2 h-4 w-4" /> ดูรายละเอียด
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem>แก้ไขข้อมูล</DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem className="text-destructive">
+                                                            ลบเอกสาร
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
 
-                                        {/* Info */}
-                                        <div className="min-w-0">
-                                            <p className="text-xs font-mono text-muted-foreground">{doc.docNumber}</p>
-                                            <p className="font-medium text-sm truncate mt-0.5">{doc.items}</p>
-                                            <p className="text-xs text-muted-foreground">{doc.customer}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Price + Status */}
-                                    <div className="text-right shrink-0">
-                                        <p className="font-bold text-sm">฿{doc.total.toLocaleString()}</p>
-                                        <div className={cn(
-                                            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium mt-1',
-                                            status.color
-                                        )}>
-                                            {status.icon}
-                                            {status.label}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Actions for actionable items */}
-                                {(doc.status === 'approved' && doc.type === 'quotation') && (
-                                    <>
-                                        <Separator className="my-2" />
-                                        <div className="flex gap-2">
-                                            <Button variant="outline" size="sm" className="flex-1 h-9 text-xs">
-                                                สร้าง Invoice
-                                                <ChevronRight className="w-3 h-3 ml-1" />
-                                            </Button>
-                                            <Button size="sm" className="flex-1 h-9 text-xs">
-                                                เริ่มงาน (Kanban)
-                                                <ChevronRight className="w-3 h-3 ml-1" />
-                                            </Button>
-                                        </div>
-                                    </>
-                                )}
-
-                                {(doc.status === 'sent' && doc.type === 'invoice') && (
-                                    <>
-                                        <Separator className="my-2" />
-                                        <Button size="sm" className="w-full h-9 text-xs bg-emerald-600 hover:bg-emerald-700">
-                                            <Banknote className="w-3.5 h-3.5 mr-1" />
-                                            บันทึกรับเงิน
-                                        </Button>
-                                    </>
-                                )}
-                            </CardContent>
-                        </Card>
-                    )
-                })}
-            </div>
+            {/* Footer / Mobile space */}
+            <div className="h-8 md:hidden" />
         </div>
     )
 }
