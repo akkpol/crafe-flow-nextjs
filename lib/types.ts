@@ -1,5 +1,15 @@
-// ===== Database Types =====
+import { Database } from './database.types'
 
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
+
+export type Order = Tables<'Order'> & { Customer?: Customer }
+export type Customer = Tables<'Customer'>
+export type Material = Tables<'Material'>
+export type OrderItem = Tables<'OrderItem'>
+export type Invoice = Tables<'Invoice'>
+export type Quotation = Tables<'Quotation'>
+
+// ===== Enums & Fixed Types =====
 export type OrderStatus =
     | 'new'
     | 'designing'
@@ -10,61 +20,7 @@ export type OrderStatus =
     | 'done'
 
 export type Priority = 'low' | 'medium' | 'high' | 'urgent'
-
-export type MaterialType = 'VINYL' | 'SUBSTRATE' | 'LAMINATE' | 'INK' | 'OTHER'
-
-export interface Order {
-    id: string
-    organizationId: string
-    orderNumber: string
-    customerId: string | null
-    status: string
-    totalAmount: number
-    vatAmount: number
-    grandTotal: number
-    priority: Priority
-    deadline: string | null
-    notes: string | null
-    createdAt: string
-    updatedAt: string
-    // Joined
-    Customer?: Customer
-}
-
-export interface Customer {
-    id: string
-    organizationId: string
-    name: string
-    phone: string | null
-    lineId: string | null
-    address: string | null
-    taxId: string | null
-}
-
-export interface Material {
-    id: string
-    organizationId: string
-    name: string
-    type: MaterialType
-    unit: string
-    costPrice: number
-    sellingPrice: number
-    inStock: number
-    minStock: number
-    wasteFactor: number
-}
-
-export interface OrderItem {
-    id: string
-    orderId: string
-    name: string
-    width: number | null
-    height: number | null
-    quantity: number
-    unitPrice: number
-    totalPrice: number
-    details: string | null
-}
+export type MaterialType = Database['public']['Enums']['MaterialType']
 
 // ===== UI Helpers =====
 

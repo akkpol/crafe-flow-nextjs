@@ -1,11 +1,12 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { Database } from './database.types'
 
 export async function createClient() {
     const cookieStore = await cookies()
 
-    return createServerClient(
+    return createServerClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
@@ -18,8 +19,6 @@ export async function createClient() {
                         cookieStore.set({ name, value, ...options })
                     } catch (error) {
                         // The `set` method was called from a Server Component.
-                        // This can be ignored if you have middleware refreshing
-                        // user sessions.
                     }
                 },
                 remove(name: string, options: CookieOptions) {
@@ -27,8 +26,6 @@ export async function createClient() {
                         cookieStore.set({ name, value: '', ...options })
                     } catch (error) {
                         // The `delete` method was called from a Server Component.
-                        // This can be ignored if you have middleware refreshing
-                        // user sessions.
                     }
                 },
             },
@@ -37,7 +34,7 @@ export async function createClient() {
 }
 
 export function createBrowser() {
-    return createBrowserClient(
+    return createBrowserClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
