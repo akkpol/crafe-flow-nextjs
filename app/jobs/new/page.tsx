@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createJob } from '@/actions/jobs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -27,18 +28,24 @@ const signTypes = [
 export default function NewJobPage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         setIsSubmitting(true)
+        setError(null)
 
-        // Simulate API call (จะเปลี่ยนเป็น Server Action จริงภายหลัง)
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        const formData = new FormData(e.currentTarget)
+        const result = await createJob(formData)
 
         setIsSubmitting(false)
-        setIsSuccess(true)
-
-        setTimeout(() => setIsSuccess(false), 3000)
+        if (result.success) {
+            setIsSuccess(true)
+            e.currentTarget.reset()
+            setTimeout(() => setIsSuccess(false), 3000)
+        } else {
+            setError(result.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล')
+        }
     }
 
     return (
@@ -60,6 +67,7 @@ export default function NewJobPage() {
                                         </Label>
                                         <Input
                                             id="customerName"
+                                            name="customerName"
                                             placeholder="เช่น คุณสมชาย / บ.ABC จำกัด"
                                             required
                                             className="mt-1.5 h-12 text-base"
@@ -71,6 +79,7 @@ export default function NewJobPage() {
                                         </Label>
                                         <Input
                                             id="customerPhone"
+                                            name="customerPhone"
                                             type="tel"
                                             placeholder="08X-XXX-XXXX"
                                             required
@@ -92,6 +101,7 @@ export default function NewJobPage() {
                                         </Label>
                                         <Input
                                             id="jobTitle"
+                                            name="jobTitle"
                                             placeholder="เช่น ป้ายหน้าร้าน ABC Cafe"
                                             required
                                             className="mt-1.5 h-12 text-base"
@@ -100,7 +110,7 @@ export default function NewJobPage() {
 
                                     <div>
                                         <Label className="text-sm font-medium">ประเภทป้าย</Label>
-                                        <Select>
+                                        <Select name="signType">
                                             <SelectTrigger className="mt-1.5 h-12 text-base">
                                                 <SelectValue placeholder="เลือกประเภท" />
                                             </SelectTrigger>
@@ -119,6 +129,7 @@ export default function NewJobPage() {
                                             <Label htmlFor="width" className="text-sm font-medium">กว้าง (ม.)</Label>
                                             <Input
                                                 id="width"
+                                                name="width"
                                                 type="number"
                                                 step="0.01"
                                                 placeholder="เช่น 2.5"
@@ -129,6 +140,7 @@ export default function NewJobPage() {
                                             <Label htmlFor="height" className="text-sm font-medium">สูง (ม.)</Label>
                                             <Input
                                                 id="height"
+                                                name="height"
                                                 type="number"
                                                 step="0.01"
                                                 placeholder="เช่น 1.2"
@@ -141,6 +153,7 @@ export default function NewJobPage() {
                                         <Label htmlFor="price" className="text-sm font-medium">ราคา (฿)</Label>
                                         <Input
                                             id="price"
+                                            name="price"
                                             type="number"
                                             placeholder="เช่น 15000"
                                             className="mt-1.5 h-12 text-base"
@@ -159,6 +172,7 @@ export default function NewJobPage() {
                                         <Label htmlFor="deadline" className="text-sm font-medium">กำหนดส่ง</Label>
                                         <Input
                                             id="deadline"
+                                            name="deadline"
                                             type="date"
                                             className="mt-1.5 h-12 text-base"
                                         />
@@ -166,7 +180,7 @@ export default function NewJobPage() {
 
                                     <div>
                                         <Label className="text-sm font-medium">ความเร่งด่วน</Label>
-                                        <Select defaultValue="medium">
+                                        <Select name="priority" defaultValue="medium">
                                             <SelectTrigger className="mt-1.5 h-12 text-base">
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -183,6 +197,7 @@ export default function NewJobPage() {
                                         <Label htmlFor="notes" className="text-sm font-medium">หมายเหตุ</Label>
                                         <Textarea
                                             id="notes"
+                                            name="notes"
                                             placeholder="รายละเอียดเพิ่มเติม..."
                                             rows={3}
                                             className="mt-1.5 text-base"
@@ -190,6 +205,12 @@ export default function NewJobPage() {
                                     </div>
                                 </div>
                             </div>
+
+                            {error && (
+                                <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+                                    {error}
+                                </div>
+                            )}
 
                             {/* Submit */}
                             <Button
