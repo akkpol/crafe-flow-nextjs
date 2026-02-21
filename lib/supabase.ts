@@ -1,41 +1,16 @@
+
 import { createBrowserClient } from '@supabase/ssr'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { Database } from './database.types'
 
-export async function createClient() {
-    const cookieStore = await cookies()
-
-    return createServerClient<Database>(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                get(name: string) {
-                    return cookieStore.get(name)?.value
-                },
-                set(name: string, value: string, options: CookieOptions) {
-                    try {
-                        cookieStore.set({ name, value, ...options })
-                    } catch (error) {
-                        // The `set` method was called from a Server Component.
-                    }
-                },
-                remove(name: string, options: CookieOptions) {
-                    try {
-                        cookieStore.set({ name, value: '', ...options })
-                    } catch (error) {
-                        // The `delete` method was called from a Server Component.
-                    }
-                },
-            },
-        }
-    )
-}
-
+// Client-side only
 export function createBrowser() {
     return createBrowserClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 }
+
+// Re-export server client for backward compatibility if needed, but it WILL fail in client components if imported.
+// So we should NOT export server client here if this file is imported by client components.
+// We will migrate usages.
+

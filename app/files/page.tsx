@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -21,7 +21,9 @@ import {
     ChevronDown,
     ChevronRight,
     HardDrive,
+    Loader2,
 } from 'lucide-react'
+import { getJobFolders, type JobFolder } from '@/actions/files'
 
 // โครงสร้างโฟลเดอร์มาตรฐานต่อ 1 งาน
 const FOLDER_TEMPLATE = [
@@ -32,52 +34,13 @@ const FOLDER_TEMPLATE = [
     { key: 'photos', label: '05-ภาพงานจริง', icon: Camera, desc: 'ภาพถ่ายก่อน-ระหว่าง-หลังติดตั้ง' },
 ]
 
-interface JobFolder {
-    id: string
-    orderNumber: string
-    jobTitle: string
-    customer: string
-    nasPath: string
-    status: string
-    files: Record<string, 'empty' | 'has_files' | 'complete'>
-    createdAt: string
-}
-
-// Demo data
-const demoJobs: JobFolder[] = [
-    {
-        id: '1', orderNumber: 'QT-2026-001', jobTitle: 'ป้ายหน้าร้าน ABC Cafe',
-        customer: 'คุณสมชาย', nasPath: '\\\\NAS\\งาน\\2026\\02\\QT-001-ป้ายหน้าร้านABC',
-        status: 'production', createdAt: '2026-02-10',
-        files: { customer_files: 'complete', design: 'complete', proof: 'complete', print_ready: 'has_files', photos: 'empty' },
-    },
-    {
-        id: '2', orderNumber: 'QT-2026-002', jobTitle: 'ป้ายไวนิลงานเปิดตัว',
-        customer: 'บ.XYZ', nasPath: '\\\\NAS\\งาน\\2026\\02\\QT-002-ป้ายไวนิลเปิดตัว',
-        status: 'designing', createdAt: '2026-02-12',
-        files: { customer_files: 'has_files', design: 'has_files', proof: 'empty', print_ready: 'empty', photos: 'empty' },
-    },
-    {
-        id: '3', orderNumber: 'QT-2026-003', jobTitle: 'ตัวอักษรโลหะ LED',
-        customer: 'คุณมาลี', nasPath: '\\\\NAS\\งาน\\2026\\02\\QT-003-ตัวอักษรLED',
-        status: 'new', createdAt: '2026-02-15',
-        files: { customer_files: 'has_files', design: 'empty', proof: 'empty', print_ready: 'empty', photos: 'empty' },
-    },
-    {
-        id: '4', orderNumber: 'QT-2026-004', jobTitle: 'สติกเกอร์กระจกร้าน',
-        customer: 'คุณวิชัย', nasPath: '\\\\NAS\\งาน\\2026\\02\\QT-004-สติกเกอร์กระจก',
-        status: 'done', createdAt: '2026-02-08',
-        files: { customer_files: 'complete', design: 'complete', proof: 'complete', print_ready: 'complete', photos: 'complete' },
-    },
-]
-
-const fileStatusIcon = {
+const fileStatusIcon: Record<string, React.ReactNode> = {
     empty: <Circle className="w-4 h-4 text-muted-foreground/40" />,
     has_files: <Circle className="w-4 h-4 text-yellow-500 fill-yellow-500/20" />,
     complete: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
 }
 
-const fileStatusLabel = {
+const fileStatusLabel: Record<string, string> = {
     empty: 'ยังไม่มีไฟล์',
     has_files: 'มีไฟล์บางส่วน',
     complete: 'ครบแล้ว',
@@ -86,16 +49,36 @@ const fileStatusLabel = {
 function getCompletionPercent(files: Record<string, string>): number {
     const values = Object.values(files)
     const complete = values.filter(v => v === 'complete').length
-    return Math.round((complete / values.length) * 100)
+    const hasFiles = values.filter(v => v === 'has_files').length
+    let score = 0
+    values.forEach(v => {
+        if (v === 'complete') score += 1
+        else if (v === 'has_files') score += 0.5
+    })
+    return Math.round((score / values.length) * 100)
 }
 
 export default function FilesPage() {
     const [search, setSearch] = useState('')
     const [expandedJob, setExpandedJob] = useState<string | null>(null)
     const [copiedPath, setCopiedPath] = useState<string | null>(null)
+    const [jobs, setJobs] = useState<JobFolder[]>([])
+    const [loading, setLoading] = useState(true)
 
-    const filtered = demoJobs.filter(job =>
-        job.jobTitle.includes(search) || job.customer.includes(search) || job.orderNumber.includes(search)
+    useEffect(() => {
+        const loadData = async () => {
+            setLoading(true)
+            const data = await getJobFolders()
+            setJobs(data)
+            setLoading(false)
+        }
+        loadData()
+    }, [])
+
+    const filtered = jobs.filter(job =>
+        job.jobTitle.toLowerCase().includes(search.toLowerCase()) ||
+        job.customer.toLowerCase().includes(search.toLowerCase()) ||
+        job.orderNumber.toLowerCase().includes(search.toLowerCase())
     )
 
     const copyPath = (path: string) => {
@@ -145,103 +128,114 @@ export default function FilesPage() {
 
             {/* Job File List */}
             <div className="px-4 pb-8 space-y-2">
-                {filtered.map((job) => {
-                    const isExpanded = expandedJob === job.id
-                    const completion = getCompletionPercent(job.files)
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <Loader2 className="w-8 h-8 animate-spin mb-2 opacity-50" />
+                        <p className="text-xs">Loading folders...</p>
+                    </div>
+                ) : filtered.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                        <p>ไม่พบงานที่ค้นหา</p>
+                    </div>
+                ) : (
+                    filtered.map((job) => {
+                        const isExpanded = expandedJob === job.id
+                        const completion = getCompletionPercent(job.files)
 
-                    return (
-                        <Card key={job.id} className="border-0 shadow-sm overflow-hidden">
-                            <CardContent className="p-0">
-                                {/* Completion bar */}
-                                <div className="h-1 bg-muted">
-                                    <div
-                                        className={cn(
-                                            'h-full transition-all',
-                                            completion === 100 ? 'bg-emerald-500' : completion > 50 ? 'bg-cyan-500' : 'bg-yellow-500'
-                                        )}
-                                        style={{ width: `${completion}%` }}
-                                    />
-                                </div>
+                        return (
+                            <Card key={job.id} className="border-0 shadow-sm overflow-hidden">
+                                <CardContent className="p-0">
+                                    {/* Completion bar */}
+                                    <div className="h-1 bg-muted">
+                                        <div
+                                            className={cn(
+                                                'h-full transition-all',
+                                                completion === 100 ? 'bg-emerald-500' : completion > 50 ? 'bg-cyan-500' : 'bg-yellow-500'
+                                            )}
+                                            style={{ width: `${completion}%` }}
+                                        />
+                                    </div>
 
-                                {/* Job header */}
-                                <button
-                                    onClick={() => setExpandedJob(isExpanded ? null : job.id)}
-                                    className="w-full p-3 text-left active:bg-muted/50 transition-colors"
-                                >
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="flex items-start gap-2.5">
-                                            {isExpanded
-                                                ? <FolderOpen className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-                                                : <FolderClosed className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
-                                            }
-                                            <div className="min-w-0">
-                                                <p className="font-medium text-sm truncate">{job.jobTitle}</p>
-                                                <p className="text-xs text-muted-foreground">{job.orderNumber} • {job.customer}</p>
+                                    {/* Job header */}
+                                    <button
+                                        onClick={() => setExpandedJob(isExpanded ? null : job.id)}
+                                        className="w-full p-3 text-left active:bg-muted/50 transition-colors"
+                                    >
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="flex items-start gap-2.5">
+                                                {isExpanded
+                                                    ? <FolderOpen className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                                                    : <FolderClosed className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                                                }
+                                                <div className="min-w-0">
+                                                    <p className="font-medium text-sm truncate">{job.jobTitle}</p>
+                                                    <p className="text-xs text-muted-foreground">{job.orderNumber} • {job.customer}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <Badge variant="outline" className="text-[10px]">
+                                                    {completion}%
+                                                </Badge>
+                                                {isExpanded
+                                                    ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                                                    : <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                                }
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <Badge variant="outline" className="text-[10px]">
-                                                {completion}%
-                                            </Badge>
-                                            {isExpanded
-                                                ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                                                : <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                            }
-                                        </div>
-                                    </div>
-                                </button>
+                                    </button>
 
-                                {/* Expanded: folder details */}
-                                {isExpanded && (
-                                    <div className="px-3 pb-3 space-y-3">
-                                        {/* NAS Path */}
-                                        <button
-                                            onClick={() => copyPath(job.nasPath)}
-                                            className="w-full flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg text-left active:bg-muted transition-colors"
-                                        >
-                                            <HardDrive className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                            <code className="text-[11px] text-muted-foreground font-mono flex-1 truncate">
-                                                {job.nasPath}
-                                            </code>
-                                            <Copy className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                            {copiedPath === job.nasPath && (
-                                                <span className="text-[10px] text-emerald-500 font-medium shrink-0">คัดลอกแล้ว!</span>
-                                            )}
-                                        </button>
+                                    {/* Expanded: folder details */}
+                                    {isExpanded && (
+                                        <div className="px-3 pb-3 space-y-3">
+                                            {/* NAS Path */}
+                                            <button
+                                                onClick={() => copyPath(job.nasPath)}
+                                                className="w-full flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg text-left active:bg-muted transition-colors"
+                                            >
+                                                <HardDrive className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                                <code className="text-[11px] text-muted-foreground font-mono flex-1 truncate">
+                                                    {job.nasPath}
+                                                </code>
+                                                <Copy className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                                {copiedPath === job.nasPath && (
+                                                    <span className="text-[10px] text-emerald-500 font-medium shrink-0">คัดลอกแล้ว!</span>
+                                                )}
+                                            </button>
 
-                                        {/* File checklist */}
-                                        <div className="space-y-1.5">
-                                            {FOLDER_TEMPLATE.map((folder) => {
-                                                const status = job.files[folder.key] || 'empty'
-                                                const Icon = folder.icon
+                                            {/* File checklist */}
+                                            <div className="space-y-1.5">
+                                                {FOLDER_TEMPLATE.map((folder) => {
+                                                    const status = job.files[folder.key] || 'empty'
+                                                    const Icon = folder.icon
 
-                                                return (
-                                                    <div
-                                                        key={folder.key}
-                                                        className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted/30 transition-colors"
-                                                    >
-                                                        {fileStatusIcon[status]}
-                                                        <Icon className="w-4 h-4 text-muted-foreground" />
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-medium">{folder.label}</p>
-                                                            <p className="text-[10px] text-muted-foreground">{folder.desc}</p>
+                                                    return (
+                                                        <div
+                                                            key={folder.key}
+                                                            className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted/30 transition-colors"
+                                                        >
+                                                            {fileStatusIcon[status]}
+                                                            <Icon className="w-4 h-4 text-muted-foreground" />
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-medium">{folder.label}</p>
+                                                                <p className="text-[10px] text-muted-foreground">{folder.desc}</p>
+                                                            </div>
+                                                            <span className={cn(
+                                                                'text-[10px]',
+                                                                status === 'complete' ? 'text-emerald-500' : status === 'has_files' ? 'text-yellow-500' : 'text-muted-foreground/50'
+                                                            )}>
+                                                                {fileStatusLabel[status]}
+                                                            </span>
                                                         </div>
-                                                        <span className={cn(
-                                                            'text-[10px]',
-                                                            status === 'complete' ? 'text-emerald-500' : status === 'has_files' ? 'text-yellow-500' : 'text-muted-foreground/50'
-                                                        )}>
-                                                            {fileStatusLabel[status]}
-                                                        </span>
-                                                    </div>
-                                                )
-                                            })}
+                                                    )
+                                                })}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    )
-                })}
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )
+                    })
+                )}
             </div>
         </div>
     )

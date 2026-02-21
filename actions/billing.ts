@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-server'
 import { Order } from '@/lib/types'
 
 export async function getBillingStats() {
@@ -43,54 +43,52 @@ export async function getBillingStats() {
 export async function getRecentDocuments() {
     const supabase = await createClient()
 
-    const { data, error } = await supabase
-        .from('Order')
-        .select('*, Customer(name)')
-        .order('createdAt', { ascending: false })
-        .limit(10)
+    const [quotations, invoices, receipts] = await Promise.all([
+        supabase.from('Quotation').select('*, Customer(name)').order('createdAt', { ascending: false }).limit(5),
+        supabase.from('Invoice').select('*, Customer(name)').order('createdAt', { ascending: false }).limit(5),
+        supabase.from('Receipt').select('*, Customer(name)').order('createdAt', { ascending: false }).limit(5)
+    ])
 
-    if (error) {
-        console.error('Error fetching documents:', error)
-        return []
-    }
+    const allDocs = [
+        ...(quotations.data || []).map((q: any) => ({ ...q, docType: 'Quote', docNumber: q.quotationNumber })),
+        ...(invoices.data || []).map((i: any) => ({ ...i, docType: 'Invoice', docNumber: i.invoiceNumber })),
+        ...(receipts.data || []).map((r: any) => ({ ...r, docType: 'Receipt', docNumber: r.receiptNumber }))
+    ]
 
-    return data.map((order: any) => {
-        // Map Order Status to Billing Status
+    // Sort by createdAt desc
+    allDocs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+    return allDocs.slice(0, 15).map((d: any) => {
         let status: 'draft' | 'sent' | 'paid' | 'overdue' = 'draft'
-        let type: 'Quote' | 'Invoice' = 'Quote'
 
-        if (['new', 'designing'].includes(order.status)) {
-            status = 'draft'
-            type = 'Quote'
-        } else if (order.status === 'approved') {
-            status = 'sent' // Quote approved
-            type = 'Quote'
-        } else if (['production', 'qc', 'installing'].includes(order.status)) {
-            status = 'sent' // Invoice sent?
-            type = 'Invoice'
-        } else if (order.status === 'done') {
+        if (d.docType === 'Quote') {
+            switch (d.status) {
+                case 'DRAFT': status = 'draft'; break;
+                case 'SENT': status = 'sent'; break;
+                case 'ACCEPTED': status = 'paid'; break;
+                case 'REJECTED': status = 'overdue'; break;
+                default: status = 'draft';
+            }
+        } else if (d.docType === 'Invoice') {
+            switch (d.status) {
+                case 'DRAFT': status = 'draft'; break;
+                case 'SENT': status = 'sent'; break;
+                case 'PAID': status = 'paid'; break;
+                case 'UNPAID': status = 'sent'; break;
+                case 'VOID': status = 'overdue'; break;
+                default: status = 'draft';
+            }
+        } else if (d.docType === 'Receipt') {
             status = 'paid'
-            type = 'Invoice'
-        }
-
-        // Overdue check
-        const today = new Date().toISOString().split('T')[0]
-        if (order.deadline && order.deadline < today && order.status !== 'done') {
-            status = 'overdue'
         }
 
         return {
-            id: order.orderNumber,
-            type,
-            customer: order.Customer?.name || 'ลูกค้าทั่วไป',
-            date: new Date(order.createdAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }),
+            id: d.docNumber,
+            type: d.docType,
+            customer: d.Customer?.name || 'ลูกค้าทั่วไป',
+            date: new Date(d.createdAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }),
             status,
-            // Mock amount for now as DB doesn't have it explicitly or sum items?
-            // Order has 'total_price' in schema? Let's check schema.
-            // Wait, Order in schema.prisma usually has distinct fields.
-            // Let's assume 'total_price' exists or calculate from OrderItem later.
-            // Checking dashboard.ts, it selects *. Let's assume passed through.
-            amount: order.totalPrice || 0,
+            amount: d.grandTotal || d.totalAmount || 0,
         }
     })
 }

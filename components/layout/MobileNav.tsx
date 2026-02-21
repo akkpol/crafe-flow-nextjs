@@ -2,12 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Columns3, PlusCircle, Package, Receipt } from 'lucide-react'
+import { LayoutDashboard, Columns3, PlusCircle, Package, Receipt, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
     { href: '/', label: 'หน้าแรก', icon: LayoutDashboard },
-    { href: '/billing', label: 'บิล', icon: Receipt },
+    { href: '/customers', label: 'ลูกค้า', icon: Users },
     { href: '/jobs/new', label: 'เพิ่ม', icon: PlusCircle },
     { href: '/kanban', label: 'งาน', icon: Columns3 },
     { href: '/stock', label: 'สต็อก', icon: Package },

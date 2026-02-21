@@ -43,42 +43,17 @@ interface BillingStats {
 }
 interface BillingLineItem {
     id: string; // Order Number
-    type: 'Quote' | 'Invoice';
+    type: 'Quote' | 'Invoice' | 'Receipt';
     customer: string;
     date: string;
     status: 'draft' | 'sent' | 'paid' | 'overdue';
     amount: number;
 }
 
-const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-    draft: { label: 'ร่าง (Draft)', variant: 'secondary' },
-    sent: { label: 'ส่งแล้ว (Sent)', variant: 'default' },
-    paid: { label: 'ชำระแล้ว (Paid)', variant: 'outline' },
-    overdue: { label: 'เกินกำหนด (Overdue)', variant: 'destructive' },
-}
+// ... statusMap ...
 
 export default function BillingPage() {
-    const [stats, setStats] = useState<BillingStats>({ toBeInvoiced: 0, overdue: 0, paidMonth: 0 })
-    const [documents, setDocuments] = useState<BillingLineItem[]>([])
-    const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-        async function loadData() {
-            try {
-                const [statsData, docsData] = await Promise.all([
-                    getBillingStats(),
-                    getRecentDocuments()
-                ])
-                setStats(statsData)
-                setDocuments(docsData)
-            } catch (error) {
-                console.error('Failed to load billing data', error)
-            } finally {
-                setLoading(false)
-            }
-        }
-        loadData()
-    }, [])
+    // ... setup ...
 
     return (
         <div className="space-y-6 pb-20 md:pb-6">
@@ -87,12 +62,26 @@ export default function BillingPage() {
                     title="💰 บิล & ใบเสนอราคา"
                     subtitle="จัดการเอกสารการเงินและสถานะการชำระเงิน"
                 />
-                <Button asChild>
-                    <Link href="/billing/new">
-                        <Plus className="w-4 h-4 mr-2" />
-                        สร้างใบเสนอราคา
-                    </Link>
-                </Button>
+                <div className="flex gap-2">
+                    <Button asChild variant="outline">
+                        <Link href="/billing/new">
+                            <Plus className="w-4 h-4 mr-2" />
+                            ใบเสนอราคา
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline">
+                        <Link href="/invoices/new">
+                            <Plus className="w-4 h-4 mr-2" />
+                            ใบแจ้งหนี้
+                        </Link>
+                    </Button>
+                    <Button asChild>
+                        <Link href="/receipts/new">
+                            <Plus className="w-4 h-4 mr-2" />
+                            ใบเสร็จรับเงิน
+                        </Link>
+                    </Button>
+                </div>
             </div>
 
             {/* KPI Cards */}

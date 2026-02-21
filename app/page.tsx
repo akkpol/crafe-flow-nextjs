@@ -14,6 +14,7 @@ import {
   Receipt,
 } from 'lucide-react'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 import { getDashboardStats, getRecentJobs, getLowStockMaterials } from '@/actions/dashboard'
 
 const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -48,15 +49,20 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6 pb-24">
       {/* Premium Glass Header */}
-      <div className="px-5 pt-8 pb-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">TD ALL CO.,LTD.</p>
-        <h1 className="text-3xl font-black tracking-tighter">
-          <span className="text-gradient-cmyk">CraftFlow</span>
-        </h1>
-        <div className="flex items-center gap-2 mt-2">
-          <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-70">Real-time Operations</p>
+      <div className="px-5 pt-8 pb-4 flex justify-between items-start">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">TD ALL CO.,LTD.</p>
+          <h1 className="text-3xl font-black tracking-tighter">
+            <span className="text-gradient-cmyk">CraftFlow</span>
+          </h1>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-70">Real-time Operations</p>
+          </div>
         </div>
+        <Link href="/settings/organization" className="p-2 rounded-full bg-muted/20 hover:bg-muted/40 transition-colors">
+          <Factory className="w-5 h-5 text-muted-foreground" />
+        </Link>
       </div>
 
       {/* Stat Grid - Premium Cards */}

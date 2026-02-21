@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-server'
 import {
     calculateQuotation,
     DEFAULT_PRICING_CONFIG,

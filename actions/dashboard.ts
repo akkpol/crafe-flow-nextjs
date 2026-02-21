@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-server'
 import { Order, Material } from '@/lib/types'
 
 export async function getDashboardStats() {

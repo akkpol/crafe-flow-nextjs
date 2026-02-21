@@ -8,8 +8,20 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Search, Minus, Plus, AlertTriangle, Package, Loader2, ArrowUpRight, TrendingDown, Box } from 'lucide-react'
-import { getStockItems, updateStockLevel } from '@/actions/stock'
+import { getStockItems, updateStockLevel, createMaterial } from '@/actions/stock'
 import { Material } from '@/lib/types'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
 
 const categories = ['ทั้งหมด', 'VINYL', 'SUBSTRATE', 'INK', 'LAMINATE', 'OTHER']
 
@@ -35,6 +47,16 @@ export default function StockPage() {
     const [stock, setStock] = useState<Material[]>([])
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState<string | null>(null)
+    const [isAddOpen, setIsAddOpen] = useState(false)
+    const [newMaterial, setNewMaterial] = useState({
+        name: '',
+        type: 'VINYL',
+        inStock: 0,
+        minStock: 5,
+        costPrice: 0,
+        sellingPrice: 0,
+        unit: 'unit'
+    })
 
     const loadStock = async () => {
         setLoading(true)
@@ -46,6 +68,29 @@ export default function StockPage() {
     useEffect(() => {
         loadStock()
     }, [])
+
+    const handleCreate = async () => {
+        try {
+            if (!newMaterial.name) return toast.error("กรุณาระบุชื่อสินค้า")
+
+            await createMaterial(newMaterial)
+            toast.success("เพิ่มสินค้าเรียบร้อยแล้ว")
+            setIsAddOpen(false)
+            setNewMaterial({
+                name: '',
+                type: 'VINYL',
+                inStock: 0,
+                minStock: 5,
+                costPrice: 0,
+                sellingPrice: 0,
+                unit: 'unit'
+            })
+            // Wait a bit or optimistic update? Re-fetch ensures ID is correct
+            loadStock()
+        } catch (error) {
+            toast.error("เกิดข้อผิดพลาดในการเพิ่มสินค้า")
+        }
+    }
 
     const filtered = stock.filter(item => {
         const matchSearch = item.name.toLowerCase().includes(search.toLowerCase())
@@ -63,11 +108,12 @@ export default function StockPage() {
         setStock(prev => prev.map(item => item.id === id ? { ...item, inStock: newLevel } : item))
 
         setUpdating(id)
-        const res = await updateStockLevel(id, newLevel)
+        const res = await updateStockLevel(id, newLevel, delta > 0 ? 'MANUAL_ADJUST' : 'MANUAL_ADJUST')
         setUpdating(null)
 
         if (!res.success) {
             setStock(prev => prev.map(item => item.id === id ? { ...item, inStock: currentVal } : item))
+            toast.error("อัปเดตสินค้าล้มเหลว")
         }
     }
 
@@ -80,14 +126,103 @@ export default function StockPage() {
                         <h1 className="text-2xl font-bold tracking-tight text-gradient-cmyk">Inventory</h1>
                         <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{loading ? 'Loading items...' : `${stock.length} Materials`}</p>
                     </div>
-                    {!loading && lowStockItems.length > 0 && (
-                        <div className="animate-pulse">
-                            <Badge variant="destructive" className="rounded-full px-3 py-1 border-0 shadow-lg shadow-destructive/20 font-bold text-[10px]">
-                                <AlertTriangle className="w-3 h-3 mr-1" />
-                                {lowStockItems.length} ACTION REQUIRED
-                            </Badge>
-                        </div>
-                    )}
+
+                    <div className="flex gap-2">
+                        {!loading && lowStockItems.length > 0 && (
+                            <div className="animate-pulse">
+                                <Badge variant="destructive" className="rounded-full px-3 py-1 border-0 shadow-lg shadow-destructive/20 font-bold text-[10px]">
+                                    <AlertTriangle className="w-3 h-3 mr-1" />
+                                    {lowStockItems.length} ACTION
+                                </Badge>
+                            </div>
+                        )}
+
+                        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                            <DialogTrigger asChild>
+                                <Button size="sm" className="rounded-full px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20">
+                                    <Plus className="w-4 h-4 mr-1" /> Add Item
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>เพิ่มสินค้าใหม่</DialogTitle>
+                                    <DialogDescription>
+                                        เพิ่มรายการวัสดุใหม่เข้าสู่ระบบ Inventory
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="name" className="text-right">ชื่อสินค้า</Label>
+                                        <Input
+                                            id="name"
+                                            value={newMaterial.name}
+                                            onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })}
+                                            className="col-span-3"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="type" className="text-right">ประเภท</Label>
+                                        <Select
+                                            value={newMaterial.type}
+                                            onValueChange={(val) => setNewMaterial({ ...newMaterial, type: val })}
+                                        >
+                                            <SelectTrigger className="col-span-3">
+                                                <SelectValue placeholder="เลือกประเภท" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {Object.keys(typeLabels).map((key) => (
+                                                    <SelectItem key={key} value={key}>{typeLabels[key]}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="stock" className="text-right">จำนวนเริ่มต้น</Label>
+                                        <Input
+                                            id="stock"
+                                            type="number"
+                                            value={newMaterial.inStock}
+                                            onChange={(e) => setNewMaterial({ ...newMaterial, inStock: Number(e.target.value) })}
+                                            className="col-span-3"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="minStock" className="text-right">จุดสั่งซื้อ (Min)</Label>
+                                        <Input
+                                            id="minStock"
+                                            type="number"
+                                            value={newMaterial.minStock}
+                                            onChange={(e) => setNewMaterial({ ...newMaterial, minStock: Number(e.target.value) })}
+                                            className="col-span-3"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="cost" className="text-right">ต้นทุน (บาท)</Label>
+                                        <Input
+                                            id="cost"
+                                            type="number"
+                                            value={newMaterial.costPrice}
+                                            onChange={(e) => setNewMaterial({ ...newMaterial, costPrice: Number(e.target.value) })}
+                                            className="col-span-3"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="unit" className="text-right">หน่วยนับ</Label>
+                                        <Input
+                                            id="unit"
+                                            value={newMaterial.unit}
+                                            onChange={(e) => setNewMaterial({ ...newMaterial, unit: e.target.value })}
+                                            className="col-span-3"
+                                            placeholder="Ex: ม้วน, แผ่น, ขวด"
+                                        />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button type="submit" onClick={handleCreate}>บันทึกรายการ</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                 </div>
 
                 <div className="relative group">

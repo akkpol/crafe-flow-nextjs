@@ -40,11 +40,17 @@ import {
     Calendar as CalendarIcon,
     Check,
     ChevronsUpDown,
-    Plus,
-    Trash2,
     Save,
-    Printer
+    Printer,
+    Loader2
 } from 'lucide-react'
+import { PricingCalculator, type CalcLineItem } from '@/components/pricing/PricingCalculator'
+import type { QuotationResult } from '@/lib/pricing-engine'
+import { createQuotation } from '@/actions/quotations'
+import { getOrganization } from '@/actions/organization'
+import { DocumentLayout, type DocumentData } from '@/components/documents/DocumentLayout'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { toast } from 'sonner'
 
 // Dummy customer data (replace with server action search later)
 const customers = [
@@ -53,19 +59,16 @@ const customers = [
     { label: 'โรงพยาบาลกรุงเทพ', value: 'cust_3', address: '2 ถ.เพชรบุรีตัดใหม่', taxId: '5555555555555' },
 ]
 
-interface LineItem {
-    id: string
-    description: string
-    width: number
-    height: number
-    quantity: number
-    unitPrice: number
-}
-
 export default function NewQuotationPage() {
     const router = useRouter()
     const [date, setDate] = useState<Date>(new Date())
     const [validUntil, setValidUntil] = useState<Date>(new Date(new Date().setDate(new Date().getDate() + 30)))
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [notes, setNotes] = useState('')
+
+    // Organization & Preview State
+    const [organization, setOrganization] = useState<any>(null)
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
     // Customer State
     const [openCustomer, setOpenCustomer] = useState(false)
@@ -73,17 +76,18 @@ export default function NewQuotationPage() {
     const [customerDetails, setCustomerDetails] = useState({ address: '', taxId: '' })
 
     // Line Items State
-    const [items, setItems] = useState<LineItem[]>([
-        { id: '1', description: '', width: 0, height: 0, quantity: 1, unitPrice: 0 }
+    const [items, setItems] = useState<CalcLineItem[]>([
+        { id: Math.random().toString(), description: '', materialId: null, width: null, height: null, quantity: 1, customUnitPrice: null, unitPrice: 0, totalPrice: 0 }
     ])
+    const [calcResult, setCalcResult] = useState<QuotationResult | null>(null)
 
     // Summary State
     const [discount, setDiscount] = useState(0)
 
     // Calculations
-    const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
+    const subtotal = calcResult?.itemsSubtotal || items.reduce((sum, item) => sum + item.totalPrice, 0)
     const afterDiscount = subtotal - discount
-    const vat = afterDiscount * 0.07
+    const vat = calcResult ? (afterDiscount * calcResult.vatRate) : (afterDiscount * 0.07)
     const grandTotal = afterDiscount + vat
 
     const handleCustomerSelect = (currentValue: string) => {
@@ -97,23 +101,66 @@ export default function NewQuotationPage() {
         }
     }
 
-    const addItem = () => {
-        setItems([...items, { id: Math.random().toString(), description: '', width: 0, height: 0, quantity: 1, unitPrice: 0 }])
-    }
+    const prepareDocumentData = (): DocumentData => ({
+        docNumber: 'DRAFT',
+        date: date || new Date(),
+        dueDate: validUntil,
+        items: items.map((item, index) => ({
+            index: index + 1,
+            name: item.description || (calcResult?.lineItems[index]?.name) || 'Untitled',
+            description: item.width && item.height ? `ขนาด ${item.width} x ${item.height} m` : undefined,
+            width: item.width || undefined,
+            height: item.height || undefined,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice
+        })),
+        subtotal,
+        discount,
+        vat,
+        grandTotal,
+        notes,
+        status: 'DRAFT'
+    })
 
-    const removeItem = (id: string) => {
-        if (items.length > 1) {
-            setItems(items.filter(item => item.id !== id))
+    const handleSave = async () => {
+        if (!selectedCustomer) {
+            toast.error('กรุณาเลือกลูกค้า')
+            return
         }
-    }
 
-    const updateItem = (id: string, field: keyof LineItem, value: any) => {
-        setItems(items.map(item => {
-            if (item.id === id) {
-                return { ...item, [field]: value }
+        setIsSubmitting(true)
+        try {
+            const quotationData = {
+                customerId: selectedCustomer,
+                totalAmount: subtotal,
+                vatAmount: vat,
+                grandTotal: grandTotal,
+                expiresAt: validUntil.toISOString(),
+                notes: notes,
             }
-            return item
-        }))
+            const itemsData = items.map(item => ({
+                name: item.description,
+                width: item.width,
+                height: item.height,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                totalPrice: item.totalPrice
+            }))
+
+            const result = await createQuotation(quotationData, itemsData)
+            if (result.success) {
+                toast.success('บันทึกใบเสนอราคาสำเร็จ')
+                router.push('/billing')
+            } else {
+                toast.error(result.error || 'เกิดข้อผิดพลาดในการบันทึก')
+            }
+        } catch (error) {
+            console.error('Save error:', error)
+            toast.error('เกิดข้อผิดพลาดในการบันทึก')
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     return (
@@ -132,12 +179,29 @@ export default function NewQuotationPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => window.print()}>
-                        <Printer className="mr-2 h-4 w-4" />
-                        ตัวอย่าง PDF
-                    </Button>
-                    <Button>
-                        <Save className="mr-2 h-4 w-4" />
+                    <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline">
+                                <Printer className="mr-2 h-4 w-4" />
+                                ตัวอย่าง PDF
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto bg-gray-100 p-8">
+                            <div className="transform scale-90 origin-top">
+                                <DocumentLayout
+                                    type="QUOTATION"
+                                    org={organization || { name: 'Demo Org' }}
+                                    customer={{ name: selectedCustomer, address: customerDetails.address, taxId: customerDetails.taxId }}
+                                    data={prepareDocumentData()}
+                                />
+                            </div>
+                            <Button className="fixed bottom-8 right-8 shadow-xl" onClick={() => window.print()}>
+                                <Printer className="mr-2 h-4 w-4" /> สั่งพิมพ์ / PDF
+                            </Button>
+                        </DialogContent>
+                    </Dialog>
+                    <Button onClick={handleSave} disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         บันทึกร่าง
                     </Button>
                 </div>
@@ -287,91 +351,18 @@ export default function NewQuotationPage() {
                 </Card>
             </div>
 
-            {/* Line Items */}
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-base">รายการสินค้า / บริการ</CardTitle>
-                    <Button variant="outline" size="sm" onClick={addItem}>
-                        <Plus className="mr-2 h-4 w-4" /> เพิ่มรายการ
-                    </Button>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[40%]">รายละเอียด</TableHead>
-                                <TableHead className="w-[10%] text-center">กว้าง</TableHead>
-                                <TableHead className="w-[10%] text-center">ยาว/สูง</TableHead>
-                                <TableHead className="w-[10%] text-center">จำนวน</TableHead>
-                                <TableHead className="w-[15%] text-right">ราคา/หน่วย</TableHead>
-                                <TableHead className="w-[15%] text-right">รวม</TableHead>
-                                <TableHead className="w-[50px]"></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {items.map((item) => (
-                                <TableRow key={item.id}>
-                                    <TableCell>
-                                        <Input
-                                            placeholder="ชื่อสินค้า / รายละเอียด"
-                                            value={item.description}
-                                            onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input
-                                            type="number"
-                                            className="text-center"
-                                            placeholder="0"
-                                            value={item.width || ''}
-                                            onChange={(e) => updateItem(item.id, 'width', parseFloat(e.target.value))}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input
-                                            type="number"
-                                            className="text-center"
-                                            placeholder="0"
-                                            value={item.height || ''}
-                                            onChange={(e) => updateItem(item.id, 'height', parseFloat(e.target.value))}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input
-                                            type="number"
-                                            className="text-center"
-                                            min="1"
-                                            value={item.quantity}
-                                            onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value))}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input
-                                            type="number"
-                                            className="text-right"
-                                            placeholder="0.00"
-                                            value={item.unitPrice || ''}
-                                            onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value))}
-                                        />
-                                    </TableCell>
-                                    <TableCell className="text-right font-medium">
-                                        {(item.quantity * item.unitPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-muted-foreground hover:text-destructive"
-                                            onClick={() => removeItem(item.id)}
-                                            disabled={items.length === 1}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                    <PricingCalculator
+                        items={items}
+                        onChange={(newItems, res) => {
+                            setItems(newItems)
+                            if (res) setCalcResult(res)
+                        }}
+                    />
                 </CardContent>
             </Card>
 
@@ -383,6 +374,8 @@ export default function NewQuotationPage() {
                         <Textarea
                             placeholder="เช่น ยืนยันสั่งผลิตมัดจำ 50%, ระยะเวลาผลิต 3-5 วัน"
                             className="min-h-[120px]"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
                         />
                     </div>
                 </div>
