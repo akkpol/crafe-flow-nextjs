@@ -2,6 +2,8 @@ import { Toaster } from "sonner";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai, Geist_Mono } from "next/font/google";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { AccessDeniedToast } from "@/components/auth/AccessDeniedToast";
+import { Suspense } from "react";
 import "./globals.css";
 
 const sans = IBM_Plex_Sans_Thai({
@@ -45,7 +47,9 @@ export default function RootLayout({
           {children}
         </main>
         <Toaster position="top-center" richColors />
+        <Suspense><AccessDeniedToast /></Suspense>
         <MobileNav />
+
       </body>
     </html>
   );

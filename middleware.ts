@@ -1,21 +1,17 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Route permission rules:
-// - /admin/*     → admin only
-// - /billing/*   → admin, manager
-// - /invoices/*  → admin, manager
-// - /receipts/*  → admin, manager
-// - /reports/*   → admin, manager
-// - /kanban      → admin, manager, staff
-// - /jobs/*      → admin, manager, staff
-// - /stock/*     → admin, manager, staff
-// - /customers/* → admin, manager
-// Everything else → all authenticated users
+// ─── Route Permission Matrix ────────────────────────────────────────────────
+// Admin-only routes: user management
+const ADMIN_ONLY_ROUTES = ['/admin']
 
-const ADMIN_ROUTES = ['/admin']
-const MANAGER_ROUTES = ['/billing', '/invoices', '/receipts', '/reports', '/customers']
-const STAFF_ROUTES = ['/kanban', '/jobs', '/stock']
+// Manager and above: finance routes
+const MANAGER_ROUTES = ['/billing', '/invoices', '/receipts']
+
+// Staff and above: production routes
+// REMOVED: staff now has access to these by default, guests/viewers are blocked
+// const STAFF_ROUTES = ['/kanban', '/jobs', '/stock']
+// ────────────────────────────────────────────────────────────────────────────
 
 export async function updateSession(request: NextRequest) {
     let response = NextResponse.next({
@@ -44,7 +40,7 @@ export async function updateSession(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     const pathname = request.nextUrl.pathname
 
-    // 1. Unauthenticated → redirect to /login
+    // ── 1. Not logged in → /login ───────────────────────────────────────────
     if (!user && !pathname.startsWith('/login') && !pathname.startsWith('/auth')) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
@@ -61,7 +57,7 @@ export async function updateSession(request: NextRequest) {
         const roleName = (profile?.roles as any)?.name as string | undefined
         const isPending = !profile?.role_id
 
-        // 2. No role (pending approval) → /pending
+        // ── 2. No role → /pending ───────────────────────────────────────────
         if (isPending && !pathname.startsWith('/pending') && !pathname.startsWith('/auth')) {
             const url = request.nextUrl.clone()
             url.pathname = '/pending'
@@ -74,32 +70,23 @@ export async function updateSession(request: NextRequest) {
             return NextResponse.redirect(url)
         }
 
-        // 3. Admin routes → only admin
-        if (ADMIN_ROUTES.some(r => pathname.startsWith(r))) {
+        // ── 3. /admin/* → admin only ────────────────────────────────────────
+        if (ADMIN_ONLY_ROUTES.some(r => pathname.startsWith(r))) {
             if (roleName !== 'admin') {
                 const url = request.nextUrl.clone()
-                url.pathname = '/' // redirect to dashboard
-                url.searchParams.set('access_denied', '1')
-                return NextResponse.redirect(url)
-            }
-        }
-
-        // 4. Manager routes → admin or manager
-        if (MANAGER_ROUTES.some(r => pathname.startsWith(r))) {
-            if (roleName !== 'admin' && roleName !== 'manager') {
-                const url = request.nextUrl.clone()
                 url.pathname = '/'
-                url.searchParams.set('access_denied', '1')
+                url.searchParams.set('access_denied', 'admin')
                 return NextResponse.redirect(url)
             }
         }
 
-        // 5. Staff routes → admin, manager, or staff
-        if (STAFF_ROUTES.some(r => pathname.startsWith(r))) {
+        // ── 4. Finance routes → admin + manager + staff ─────────────────────
+        // CHANGED: staff can now view billing (read-only enforced at component level)
+        if (MANAGER_ROUTES.some(r => pathname.startsWith(r))) {
             if (roleName !== 'admin' && roleName !== 'manager' && roleName !== 'staff') {
                 const url = request.nextUrl.clone()
                 url.pathname = '/'
-                url.searchParams.set('access_denied', '1')
+                url.searchParams.set('access_denied', 'manager')
                 return NextResponse.redirect(url)
             }
         }
