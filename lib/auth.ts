@@ -1,6 +1,17 @@
 import { createClient } from '@/lib/supabase-server'
 import { cache } from 'react'
 
+export type RoleName = 'admin' | 'manager' | 'staff' | 'viewer'
+
+export type Permission =
+    | '*'
+    | 'orders'
+    | 'orders:read'
+    | 'billing'
+    | 'stock'
+    | 'customers'
+    | 'reports'
+
 export const getUser = cache(async () => {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -21,20 +32,63 @@ export const getProfile = cache(async () => {
     return profile
 })
 
-export const hasPermission = async (permission: string) => {
+export const getUserRole = cache(async (): Promise<RoleName | null> => {
     const profile = await getProfile()
-    if (!profile || !profile.roles) return false
+    return ((profile?.roles as any)?.name as RoleName) ?? null
+})
 
-    const permissions = (profile.roles as any).permissions
-    if (!permissions) return false
+/**
+ * Check if the current user has a specific permission.
+ * Admins with '*' permission pass all checks.
+ * Also supports sub-permission check: 'orders:read' satisfies 'orders'.
+ */
+export const hasPermission = cache(async (permission: Permission): Promise<boolean> => {
+    const profile = await getProfile()
+    if (!profile?.roles) return false
 
-    if (Array.isArray(permissions)) {
-        return permissions.includes('*') || permissions.includes(permission)
-    }
+    const permissions: string[] = (profile.roles as any)?.permissions ?? []
+
+    // Wildcard grants everything
+    if (permissions.includes('*')) return true
+
+    // Exact match
+    if (permissions.includes(permission)) return true
+
+    // Check prefix: 'orders:read' satisfies 'orders' check if permission is 'orders:read'
+    if (permissions.some(p => permission.startsWith(p + ':'))) return true
+
     return false
+})
+
+export const isAdmin = cache(async (): Promise<boolean> => {
+    const role = await getUserRole()
+    return role === 'admin'
+})
+
+export const isManagerOrAbove = cache(async (): Promise<boolean> => {
+    const role = await getUserRole()
+    return role === 'admin' || role === 'manager'
+})
+
+export const isStaffOrAbove = cache(async (): Promise<boolean> => {
+    const role = await getUserRole()
+    return role === 'admin' || role === 'manager' || role === 'staff'
+})
+
+/**
+ * Use in Server Actions to throw if user lacks permission.
+ * Example: await requirePermission('billing')
+ */
+export async function requirePermission(permission: Permission): Promise<void> {
+    const allowed = await hasPermission(permission)
+    if (!allowed) {
+        throw new Error(`Permission denied: requires '${permission}'`)
+    }
 }
 
-export const isAdmin = async () => {
-    const profile = await getProfile()
-    return profile?.roles?.name === 'admin'
+export async function requireAdmin(): Promise<void> {
+    const admin = await isAdmin()
+    if (!admin) {
+        throw new Error('Permission denied: admin only')
+    }
 }

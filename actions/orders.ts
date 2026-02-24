@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 import type { Order, OrderItem, OrderStatus, OrderInsert, OrderItemInsert } from '@/lib/types'
+import { requirePermission } from '@/lib/auth'
+
 
 // ============================================================
 // READ
@@ -69,6 +71,9 @@ export async function createOrder(
     orderData: Partial<OrderInsert>,
     items: Partial<OrderItemInsert>[]
 ): Promise<{ success: boolean; data?: any; error?: string }> {
+    // Permission guard — creating orders requires 'orders' permission
+    await requirePermission('orders')
+
     const supabase = await createClient()
     const orderNumber = await generateOrderNumber()
 

@@ -2,7 +2,8 @@
 
 import { createClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
-import { Invoice } from '@/lib/types' // Ensure these types exist or used Database types
+import { Invoice } from '@/lib/types'
+import { requirePermission } from '@/lib/auth'
 
 /**
  * Generate a new Invoice ID (IV-YYYYMM-XXXX)
@@ -65,6 +66,9 @@ export async function generateTaxInvoiceNumber(): Promise<string> {
 }
 
 export async function createInvoice(data: any, items: any[]) {
+    // Permission guard — billing requires 'billing' or admin
+    await requirePermission('billing')
+
     const supabase = await createClient()
     const invoiceNumber = await generateInvoiceNumber()
 
