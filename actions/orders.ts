@@ -22,6 +22,8 @@ export async function getOrders() {
     return data
 }
 
+
+
 export async function getOrder(id: string) {
     const supabase = await createClient()
     const { data, error } = await supabase
@@ -70,12 +72,16 @@ export async function createOrder(
     const supabase = await createClient()
     const orderNumber = await generateOrderNumber()
 
+    // Fetch Organization ID dynamically
+    const { data: org } = await supabase.from('Organization').select('id').single()
+    const organizationId = org?.id ?? ''
+
     // 1. Create Order Headers
     const { data: newOrder, error: orderError } = await supabase
         .from('Order')
         .insert({
             id: crypto.randomUUID(),
-            organizationId: 'demo-org-123', // Hardcoded for now
+            organizationId,
             orderNumber,
             status: 'new',
             totalAmount: orderData.totalAmount || 0,

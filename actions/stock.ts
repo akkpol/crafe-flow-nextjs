@@ -69,10 +69,14 @@ export async function updateStockLevel(id: string, newAmount: number, reason: st
 export async function createMaterial(data: any) {
     const supabase = await createClient()
 
+    // Fetch Organization ID dynamically
+    const { data: org } = await supabase.from('Organization').select('id').single()
+    const organizationId = org?.id ?? ''
+
     // Validate/Prepare data
     const newMaterial = {
         id: crypto.randomUUID(),
-        organizationId: 'demo-org-123', // Hardcoded for now
+        organizationId,
         name: data.name,
         type: data.type,
         inStock: Number(data.inStock) || 0,

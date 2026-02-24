@@ -410,6 +410,8 @@ export default function NewInvoicePage() {
             < Card >
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-base">รายการสินค้า / บริการ</CardTitle>
+                </CardHeader>
+                <CardContent>
                     <PricingCalculator
                         items={items}
                         onChange={(newItems, res) => {

@@ -16,7 +16,7 @@ interface DocumentItem {
     totalPrice: number;
 }
 
-interface DocumentData {
+export interface DocumentData {
     docNumber: string;
     date: Date;
     dueDate?: Date;

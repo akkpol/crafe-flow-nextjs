@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
-import { Invoice, InvoiceItem } from '@/lib/types' // Ensure these types exist or used Database types
+import { Invoice } from '@/lib/types' // Ensure these types exist or used Database types
 
 /**
  * Generate a new Invoice ID (IV-YYYYMM-XXXX)
@@ -81,13 +81,14 @@ export async function createInvoice(data: any, items: any[]) {
     let organizationId = data.organizationId
     if (!organizationId) {
         const { data: org } = await supabase.from('Organization').select('id').single()
-        organizationId = org?.id
+        organizationId = org?.id ?? ''
     }
 
     // 1. Create Invoice
     const { data: invoice, error: invoiceError } = await supabase
         .from('Invoice')
         .insert({
+            id: crypto.randomUUID(),
             invoiceNumber,
             isTaxInvoice,
             taxInvoiceNumber,
@@ -99,7 +100,7 @@ export async function createInvoice(data: any, items: any[]) {
             vatAmount: data.vatAmount,
             grandTotal: data.grandTotal,
             dueDate: data.dueDate,
-            status: 'UNPAID',
+            status: 'SENT' as const, // SENT = unpaid/awaiting payment
             updatedAt: new Date().toISOString()
         })
         .select()
@@ -135,7 +136,56 @@ export async function createInvoice(data: any, items: any[]) {
         }
     }
 
+    // 3. Auto-deduct stock for items linked to a material
+    try {
+        for (const item of items) {
+            if (!item.materialId) continue // Skip items without a linked material
+
+            // Fetch the material to get wasteFactor and current stock
+            const { data: material } = await supabase
+                .from('Material')
+                .select('id, inStock, wasteFactor, unit')
+                .eq('id', item.materialId)
+                .single()
+
+            if (!material) continue
+
+            // Calculate quantity used (apply wasteFactor)
+            let quantityUsed: number
+            if (item.width && item.height) {
+                // sqm-based: width × height × qty × wasteFactor
+                const area = item.width * item.height * (item.quantity || 1)
+                quantityUsed = area * Math.max(1, material.wasteFactor || 1)
+            } else {
+                // piece-based: qty × wasteFactor
+                quantityUsed = (item.quantity || 1) * Math.max(1, material.wasteFactor || 1)
+            }
+
+            const newStock = Math.max(0, material.inStock - quantityUsed)
+
+            // Deduct from stock
+            await supabase
+                .from('Material')
+                .update({ inStock: newStock, updatedAt: new Date().toISOString() })
+                .eq('id', material.id)
+
+            // Record stock transaction
+            await supabase.from('StockTransaction').insert({
+                id: crypto.randomUUID(),
+                materialId: material.id,
+                type: 'STOCK_OUT',
+                quantity: quantityUsed,
+                reason: `Invoice ${invoiceNumber}`,
+                createdAt: new Date().toISOString(),
+            })
+        }
+    } catch (stockError) {
+        // Non-blocking: log but don't roll back invoice
+        console.error('Error deducting stock for invoice:', stockError)
+    }
+
     revalidatePath('/invoices')
+    revalidatePath('/stock') // Refresh stock page
     return { success: true, data: invoice }
 }
 
@@ -167,7 +217,7 @@ export async function getUnpaidInvoices() {
     const { data, error } = await supabase
         .from('Invoice')
         .select('*, Customer(name)')
-        .eq('status', 'UNPAID')
+        .eq('status', 'SENT') // SENT = awaiting payment (UNPAID is not a valid status)
         .order('createdAt', { ascending: false })
 
     if (error) return []

@@ -65,16 +65,39 @@ export async function createReceipt(data: {
     }
 
     // 2. Update Invoice Status to PAID
-    const { error: invoiceError } = await supabase
+    const { data: updatedInvoice, error: invoiceError } = await supabase
         .from('Invoice')
         .update({ status: 'PAID' })
         .eq('id', data.invoiceId)
+        .select('orderId')
+        .single()
 
     if (invoiceError) {
         console.error('Error updating invoice status:', invoiceError)
-        // Rolling back receipt creation or just log error? 
-        // Better to try to rollback but for now assume detailed error handling for later.
-        // Or at least notify user.
+    }
+
+    // 3. Auto-complete linked Order if one exists
+    if (updatedInvoice?.orderId) {
+        const { error: orderError } = await supabase
+            .from('Order')
+            .update({ status: 'completed', updatedAt: new Date().toISOString() })
+            .eq('id', updatedInvoice.orderId)
+
+        if (!orderError) {
+            // Log to order history
+            await supabase.from('OrderHistory').insert({
+                orderId: updatedInvoice.orderId,
+                action: 'STATUS_CHANGE',
+                details: JSON.stringify({ status: 'completed', trigger: 'payment_received', receiptNumber: receipt.receiptNumber }),
+                createdAt: new Date().toISOString(),
+            })
+        } else {
+            console.error('Error auto-completing order:', orderError)
+        }
+
+        // Revalidate kanban so order card moves
+        revalidatePath('/kanban')
+        revalidatePath('/jobs')
     }
 
     revalidatePath('/invoices')

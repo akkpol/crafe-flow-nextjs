@@ -50,10 +50,37 @@ interface BillingLineItem {
     amount: number;
 }
 
-// ... statusMap ...
+// statusMap for rendering badges
+const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+    draft: { label: 'ร่าง', variant: 'secondary' },
+    sent: { label: 'ส่งแล้ว', variant: 'outline' },
+    paid: { label: 'ชำระแล้ว', variant: 'default' },
+    overdue: { label: 'เกินกำหนด', variant: 'destructive' },
+}
 
 export default function BillingPage() {
-    // ... setup ...
+    const [stats, setStats] = useState<BillingStats>({ toBeInvoiced: 0, overdue: 0, paidMonth: 0 })
+    const [documents, setDocuments] = useState<BillingLineItem[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        async function loadData() {
+            setLoading(true)
+            try {
+                const [statsData, docsData] = await Promise.all([
+                    getBillingStats(),
+                    getRecentDocuments(),
+                ])
+                if (statsData) setStats(statsData as BillingStats)
+                if (docsData) setDocuments(docsData as BillingLineItem[])
+            } catch (e) {
+                console.error('Failed to load billing data:', e)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadData()
+    }, [])
 
     return (
         <div className="space-y-6 pb-20 md:pb-6">
