@@ -43,7 +43,8 @@ import {
     Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import * as VisuallyHiddenPrimitive from '@radix-ui/react-visually-hidden'
 
 import { getUnpaidInvoices, getInvoice } from '@/actions/invoices'
 import { createReceipt } from '@/actions/receipts'
@@ -180,18 +181,23 @@ export default function NewReceiptPage() {
                                 ตัวอย่าง PDF
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto bg-gray-100 p-8">
+                        <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !translate-x-0 !translate-y-0 !top-0 !left-0 !rounded-none overflow-y-auto bg-gray-100 p-0 flex flex-col">
+                            <VisuallyHiddenPrimitive.Root asChild>
+                                <DialogTitle>ตัวอย่างใบเสร็จ</DialogTitle>
+                            </VisuallyHiddenPrimitive.Root>
                             {organization && invoiceDetails && (
-                                <div className="transform scale-90 origin-top">
-                                    <DocumentLayout
-                                        type="RECEIPT"
-                                        org={organization}
-                                        customer={customerData}
-                                        data={prepareDocumentData()}
-                                    />
+                                <div className="flex-1 flex justify-center py-8 px-4">
+                                    <div className="w-full max-w-3xl">
+                                        <DocumentLayout
+                                            type="RECEIPT"
+                                            org={organization}
+                                            customer={customerData}
+                                            data={prepareDocumentData()}
+                                        />
+                                    </div>
                                 </div>
                             )}
-                            <Button className="fixed bottom-8 right-8 shadow-xl" onClick={() => window.print()}>
+                            <Button className="fixed bottom-8 right-8 shadow-xl z-50" onClick={() => window.print()}>
                                 <Printer className="mr-2 h-4 w-4" /> สั่งพิมพ์ / PDF
                             </Button>
                         </DialogContent>

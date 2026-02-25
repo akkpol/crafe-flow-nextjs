@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 import { Invoice } from '@/lib/types'
 import { requirePermission } from '@/lib/auth'
+import { InvoiceSchema, InvoiceItemSchema } from '@/lib/schemas'
+import { z } from 'zod'
 
 /**
  * Generate a new Invoice ID (IV-YYYYMM-XXXX)
@@ -65,9 +67,13 @@ export async function generateTaxInvoiceNumber(): Promise<string> {
     return `${prefix}-${runningNumber.toString().padStart(4, '0')}`
 }
 
-export async function createInvoice(data: any, items: any[]) {
+export async function createInvoice(inData: z.input<typeof InvoiceSchema>, inItems: z.input<typeof InvoiceItemSchema>[]) {
     // Permission guard — billing requires 'billing' or admin
     await requirePermission('billing')
+
+    // Parse input payloads
+    const data = InvoiceSchema.parse(inData)
+    const items = z.array(InvoiceItemSchema).parse(inItems)
 
     const supabase = await createClient()
     const invoiceNumber = await generateInvoiceNumber()

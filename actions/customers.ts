@@ -2,18 +2,15 @@
 
 import { createClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/lib/auth'
+import { CustomerSchema } from '@/lib/schemas'
+import { z } from 'zod'
 
 // ============================================================
 // TYPES
 // ============================================================
 
-export interface CustomerInput {
-    name: string
-    phone?: string
-    lineId?: string
-    address?: string
-    taxId?: string
-}
+export type CustomerInput = z.input<typeof CustomerSchema>
 
 export interface CustomerRow {
     id: string
@@ -27,8 +24,8 @@ export interface CustomerRow {
     updatedAt: string
 }
 
-// Hardcoded for now — will come from auth session later
-const DEFAULT_ORG_ID = 'demo-org-123'
+// Dynamic Org ID fetching instead of hardcoded
+// const DEFAULT_ORG_ID = 'demo-org-123'
 
 // ============================================================
 // READ
@@ -93,27 +90,31 @@ export async function searchCustomers(query: string): Promise<CustomerRow[]> {
 // ============================================================
 
 export async function createCustomer(input: CustomerInput): Promise<{ success: boolean; data?: CustomerRow; error?: string }> {
-    // Validation
-    if (!input.name || input.name.trim().length === 0) {
-        return { success: false, error: 'ชื่อลูกค้าห้ามว่าง' }
-    }
+    await requirePermission('customers')
 
-    if (input.taxId && input.taxId.length !== 13) {
-        return { success: false, error: 'เลขประจำตัวผู้เสียภาษีต้องมี 13 หลัก' }
+    // Validation via Zod
+    const parsed = CustomerSchema.safeParse(input)
+    if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0].message }
     }
+    const validatedInput = parsed.data
 
     const supabase = await createClient()
+
+    // Fetch Organization ID dynamically
+    const { data: org } = await supabase.from('Organization').select('id').single()
+    const organizationId = org?.id ?? ''
 
     const { data, error } = await supabase
         .from('Customer')
         .insert({
             id: crypto.randomUUID(),
-            organizationId: DEFAULT_ORG_ID,
-            name: input.name.trim(),
-            phone: input.phone?.trim() || null,
-            lineId: input.lineId?.trim() || null,
-            address: input.address?.trim() || null,
-            taxId: input.taxId?.trim() || null,
+            organizationId,
+            name: validatedInput.name.trim(),
+            phone: validatedInput.phone?.trim() || null,
+            lineId: validatedInput.lineId?.trim() || null,
+            address: validatedInput.address?.trim() || null,
+            taxId: validatedInput.taxId?.trim() || null,
             updatedAt: new Date().toISOString(),
         })
         .select()
@@ -133,24 +134,25 @@ export async function createCustomer(input: CustomerInput): Promise<{ success: b
 // ============================================================
 
 export async function updateCustomer(id: string, input: CustomerInput): Promise<{ success: boolean; error?: string }> {
-    if (!input.name || input.name.trim().length === 0) {
-        return { success: false, error: 'ชื่อลูกค้าห้ามว่าง' }
-    }
+    await requirePermission('customers')
 
-    if (input.taxId && input.taxId.length !== 13) {
-        return { success: false, error: 'เลขประจำตัวผู้เสียภาษีต้องมี 13 หลัก' }
+    // Validation via Zod
+    const parsed = CustomerSchema.safeParse(input)
+    if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0].message }
     }
+    const validatedInput = parsed.data
 
     const supabase = await createClient()
 
     const { error } = await supabase
         .from('Customer')
         .update({
-            name: input.name.trim(),
-            phone: input.phone?.trim() || null,
-            lineId: input.lineId?.trim() || null,
-            address: input.address?.trim() || null,
-            taxId: input.taxId?.trim() || null,
+            name: validatedInput.name.trim(),
+            phone: validatedInput.phone?.trim() || null,
+            lineId: validatedInput.lineId?.trim() || null,
+            address: validatedInput.address?.trim() || null,
+            taxId: validatedInput.taxId?.trim() || null,
             updatedAt: new Date().toISOString(),
         })
         .eq('id', id)
@@ -169,6 +171,8 @@ export async function updateCustomer(id: string, input: CustomerInput): Promise<
 // ============================================================
 
 export async function deleteCustomer(id: string): Promise<{ success: boolean; error?: string }> {
+    await requirePermission('customers')
+
     const supabase = await createClient()
 
     // ตรวจสอบว่ามี Order ที่เชื่อมอยู่หรือไม่

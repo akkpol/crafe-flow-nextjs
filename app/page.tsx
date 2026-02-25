@@ -1,183 +1,196 @@
-import { PageHeader } from '@/components/layout/PageHeader'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import {
   ClipboardList,
   Factory,
-  Truck,
   CheckCircle2,
   AlertTriangle,
   TrendingUp,
-  ArrowRight,
-  FolderOpen,
   Receipt,
+  Package,
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { getDashboardStats, getRecentJobs, getLowStockMaterials } from '@/actions/dashboard'
+import { getProfile } from '@/lib/auth'
 
-const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  new: { label: 'รับงาน', variant: 'outline' },
-  designing: { label: 'ออกแบบ', variant: 'secondary' },
-  approved: { label: 'ยืนยัน', variant: 'default' },
-  production: { label: 'ผลิต', variant: 'default' },
-  qc: { label: 'QC', variant: 'secondary' },
-  installing: { label: 'ติดตั้ง', variant: 'default' },
-  done: { label: 'เสร็จ', variant: 'outline' },
+const statusMap: Record<string, { label: string; colorClass: string; bgClass: string }> = {
+  new: { label: 'รับงาน', colorClass: 'text-blue-400', bgClass: 'bg-blue-400/10 border-blue-400/20' },
+  designing: { label: 'ออกแบบ', colorClass: 'text-purple-400', bgClass: 'bg-purple-400/10 border-purple-400/20' },
+  approved: { label: 'ยืนยัน', colorClass: 'text-emerald-400', bgClass: 'bg-emerald-400/10 border-emerald-400/20' },
+  production: { label: 'ผลิต', colorClass: 'text-cyan-400', bgClass: 'bg-cyan-400/10 border-cyan-400/20' },
+  qc: { label: 'QC', colorClass: 'text-yellow-400', bgClass: 'bg-yellow-400/10 border-yellow-400/20' },
+  installing: { label: 'ติดตั้ง', colorClass: 'text-orange-400', bgClass: 'bg-orange-400/10 border-orange-400/20' },
+  done: { label: 'เสร็จ', colorClass: 'text-muted-foreground', bgClass: 'bg-muted/10 border-border/50' },
 }
 
-const priorityMap: Record<string, { label: string; color: string }> = {
-  low: { label: 'ต่ำ', color: 'text-muted-foreground' },
-  medium: { label: 'ปกติ', color: 'text-cyan-600' },
-  high: { label: 'สูง', color: 'text-yellow-600 font-semibold' },
-  urgent: { label: 'ด่วน!', color: 'text-red-500 font-bold' },
+const priorityMap: Record<string, { label: string; bgClass: string }> = {
+  low: { label: 'ต่ำ', bgClass: 'bg-muted text-muted-foreground' },
+  medium: { label: 'ปกติ', bgClass: 'bg-blue-500/20 text-blue-400' },
+  high: { label: 'สูง', bgClass: 'bg-yellow-500/20 text-yellow-500' },
+  urgent: { label: 'ด่วน!', bgClass: 'bg-red-500/20 text-red-500 animate-pulse' },
 }
 
 export default async function DashboardPage() {
   const statsData = await getDashboardStats()
   const recentJobs = await getRecentJobs()
   const lowStockItems = await getLowStockMaterials()
+  const profile = await getProfile()
+
+  const activeJobsCount = statsData.production + statsData.installing + statsData.totalJobs // just an example composite for visual
 
   const stats = [
-    { label: 'งานทั้งหมด', value: statsData.totalJobs, icon: ClipboardList, color: 'text-cyan', bg: 'bg-cyan/10' },
-    { label: 'กำลังผลิต/QC', value: statsData.production, icon: Factory, color: 'text-magenta', bg: 'bg-magenta/10' },
-    { label: 'กำลังติดตั้ง', value: statsData.installing, icon: Truck, color: 'text-cmyk-yellow', bg: 'bg-cmyk-yellow/10' },
-    { label: 'เสร็จเดือนนี้', value: statsData.doneMonth, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { label: 'Active Jobs', value: activeJobsCount, icon: ClipboardList, glowClass: 'shadow-[0_0_20px_rgba(34,211,238,0.15)] ring-cyan-500/30', textClass: 'text-cyan-400', iconBg: 'bg-cyan-500/20' },
+    { label: 'Total Orders', value: statsData.totalJobs, icon: Factory, glowClass: 'shadow-[0_0_20px_rgba(59,130,246,0.15)] ring-blue-500/30', textClass: 'text-blue-400', iconBg: 'bg-blue-500/20' },
+    { label: 'Low Stock Alerts', value: lowStockItems.length, icon: AlertTriangle, glowClass: 'shadow-[0_0_20px_rgba(249,115,22,0.15)] ring-orange-500/30', textClass: 'text-orange-400', iconBg: 'bg-orange-500/20' },
+    { label: 'Done Month', value: statsData.doneMonth, icon: CheckCircle2, glowClass: 'shadow-[0_0_20px_rgba(16,185,129,0.15)] ring-emerald-500/30', textClass: 'text-emerald-400', iconBg: 'bg-emerald-500/20' },
   ]
 
   return (
-    <div className="space-y-6 pb-24">
-      {/* Premium Glass Header */}
-      <div className="px-5 pt-8 pb-4 flex justify-between items-start">
+    <div className="space-y-6 md:space-y-8 p-4 md:p-8 max-w-[1600px] mx-auto">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">TD ALL CO.,LTD.</p>
-          <h1 className="text-3xl font-black tracking-tighter">
-            <span className="text-gradient-cmyk">CraftFlow</span>
+          <h1 className="text-3xl md:text-4xl font-black tracking-tighter mb-1">
+            Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">{profile?.full_name || 'User'}</span>
           </h1>
-          <div className="flex items-center gap-2 mt-2">
-            <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-70">Real-time Operations</p>
-          </div>
+          <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+            Signage ERP Command Center • {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
         </div>
-        <Link href="/settings/organization" className="p-2 rounded-full bg-muted/20 hover:bg-muted/40 transition-colors">
-          <Factory className="w-5 h-5 text-muted-foreground" />
-        </Link>
       </div>
 
-      {/* Stat Grid - Premium Cards */}
-      <div className="grid grid-cols-2 gap-3 px-4">
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         {stats.map((stat) => {
           const Icon = stat.icon
           return (
-            <div key={stat.label} className="card-premium p-5 group relative overflow-hidden">
-              <div className={`absolute top-0 right-0 p-3 opacity-[0.05] group-hover:opacity-20 transition-opacity ${stat.color}`}>
-                <Icon className="w-10 h-10" />
-              </div>
-              <div className="relative z-10">
-                <p className="text-3xl font-black tracking-tighter mb-1">{stat.value}</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-80">{stat.label}</p>
+            <div key={stat.label} className={cn(
+              "relative overflow-hidden rounded-2xl bg-card/40 backdrop-blur-xl border border-white/5 p-6 transition-all duration-300 hover:-translate-y-1 hover:bg-card/60 ring-1",
+              stat.glowClass
+            )}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[11px] md:text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">{stat.label}</p>
+                  <p className="text-3xl md:text-4xl font-black tracking-tighter">{stat.value}</p>
+                </div>
+                <div className={cn("p-3 rounded-xl", stat.iconBg)}>
+                  <Icon className={cn("w-5 h-5 md:w-6 md:h-6", stat.textClass)} />
+                </div>
               </div>
             </div>
           )
         })}
       </div>
 
-      {/* Quick Actions - Glass Cards */}
-      <div className="flex gap-3 px-4">
-        <Link href="/files" className="flex-1">
-          <div className="card-premium p-4 flex items-center gap-3 bg-muted/20 border-transparent hover:bg-background">
-            <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
-              <FolderOpen className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-sm font-black tracking-tight">Cloud Files</p>
-              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">NAS STORAGE</p>
-            </div>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Link href="/jobs/new" className="group flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 hover:border-cyan-500/50 transition-all">
+          <div className="p-3 rounded-xl bg-cyan-500/20 text-cyan-400 group-hover:scale-110 transition-transform">
+            <ClipboardList className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm tracking-tight text-cyan-50">New Job Ticket</h3>
+            <p className="text-xs text-muted-foreground">Start a new project</p>
           </div>
         </Link>
-        <Link href="/billing" className="flex-1">
-          <div className="card-premium p-4 flex items-center gap-3 bg-muted/20 border-transparent hover:bg-background">
-            <div className="p-2.5 rounded-2xl bg-magenta/10 text-magenta">
-              <Receipt className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-sm font-black tracking-tight">Billing</p>
-              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">FINANCE</p>
-            </div>
+        <Link href="/billing/new" className="group flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 hover:border-purple-500/50 transition-all">
+          <div className="p-3 rounded-xl bg-purple-500/20 text-purple-400 group-hover:scale-110 transition-transform">
+            <Receipt className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm tracking-tight text-purple-50">Create Quote</h3>
+            <p className="text-xs text-muted-foreground">Send estimation</p>
+          </div>
+        </Link>
+        <Link href="/stock" className="group flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20 hover:border-orange-500/50 transition-all">
+          <div className="p-3 rounded-xl bg-orange-500/20 text-orange-400 group-hover:scale-110 transition-transform">
+            <Package className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm tracking-tight text-orange-50">Manage Stock</h3>
+            <p className="text-xs text-muted-foreground">Update inventory</p>
           </div>
         </Link>
       </div>
 
-      {/* Logic for Low Stock and Recent Jobs remains the same but with Premium Cards */}
-      {lowStockItems.length > 0 && (
-        <div className="px-4">
-          <div className="card-premium p-5 border-destructive/20 bg-destructive/5 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <AlertTriangle className="w-12 h-12 text-destructive" />
-            </div>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-xs font-black uppercase tracking-[0.2em] text-destructive">Urgent Inventory Alerts</span>
-            </div>
-            <div className="space-y-3">
-              {lowStockItems.map((item) => (
-                <div key={item.name} className="flex justify-between items-center text-sm font-bold tracking-tight">
-                  <span className="opacity-80">{item.name}</span>
-                  <Badge variant="destructive" className="rounded-lg px-2 py-0 h-5 text-[10px] font-black">
-                    {item.current}/{item.min}
-                  </Badge>
+      {/* Data Section Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+
+        {/* Recent Active Jobs */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-cyan-400" />
+              Recent Active Jobs
+            </h2>
+            <Link href="/kanban" className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors">
+              View All
+            </Link>
+          </div>
+          <div className="rounded-2xl bg-card/30 backdrop-blur-md border border-white/5 divide-y divide-border/50 overflow-hidden">
+            {recentJobs.length === 0 ? (
+              <div className="p-12 text-center text-muted-foreground">
+                <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                <p className="text-sm font-semibold">No active jobs found.</p>
+              </div>
+            ) : (
+              recentJobs.map((job) => (
+                <div key={job.id} className="p-4 md:p-5 flex items-center justify-between hover:bg-white/[0.02] transition-colors group">
+                  <div className="min-w-0 pr-4">
+                    <h3 className="font-bold text-sm md:text-base tracking-tight truncate text-foreground group-hover:text-cyan-400 transition-colors">{job.title}</h3>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">{job.customer}</p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className={cn("text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg", priorityMap[job.priority]?.bgClass)}>
+                      {priorityMap[job.priority]?.label}
+                    </span>
+                    <span className={cn("text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg border", statusMap[job.status]?.bgClass, statusMap[job.status]?.colorClass)}>
+                      {statusMap[job.status]?.label || job.status}
+                    </span>
+                  </div>
                 </div>
-              ))}
-            </div>
+              ))
+            )}
           </div>
         </div>
-      )}
 
-      {/* Recent Jobs - Premium List */}
-      <div className="px-4">
-        <div className="flex items-center justify-between mb-4 px-1">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <h2 className="text-xs font-black uppercase tracking-[0.2em]">Live Job Track</h2>
+        {/* Low Stock Alerts */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-orange-400" />
+              Low Stock Alerts
+            </h2>
           </div>
-          <Link href="/kanban" className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
-            Dashboard <ArrowRight className="w-3 h-3" />
-          </Link>
-        </div>
-
-        <div className="space-y-3">
-          {recentJobs.length === 0 ? (
-            <div className="card-premium p-10 text-center text-muted-foreground border-dashed">
-              <ClipboardList className="w-10 h-10 mx-auto mb-2 opacity-10" />
-              <p className="text-xs font-bold uppercase tracking-widest">No active jobs</p>
-            </div>
-          ) : (
-            recentJobs.map((job) => (
-              <div key={job.id} className="card-premium p-5 hover:translate-x-1">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-black text-base tracking-tight truncate mb-1">{job.title}</h3>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-70 mb-3">{job.customer}</p>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={statusMap[job.status]?.variant || 'outline'} className="text-[9px] font-black uppercase tracking-tighter px-2 h-5 rounded-full">
-                        {statusMap[job.status]?.label || job.status}
-                      </Badge>
-                      <span className={cn("text-[9px] font-black uppercase tracking-widest", priorityMap[job.priority]?.color)}>
-                        {priorityMap[job.priority]?.label}
-                      </span>
+          <div className="rounded-2xl bg-card/30 backdrop-blur-md border border-white/5 overflow-hidden">
+            {lowStockItems.length === 0 ? (
+              <div className="p-8 text-center text-emerald-500/70">
+                <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-xs font-semibold">Inventory is healthy</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/50">
+                {lowStockItems.map((item) => (
+                  <div key={item.name} className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
+                    <span className="text-sm font-semibold tracking-tight">{item.name}</span>
+                    <div className="text-right">
+                      <p className="text-sm font-black text-red-400">{item.current} <span className="text-[10px] font-medium text-muted-foreground">{item.unit}</span></p>
+                      <p className="text-[10px] text-muted-foreground">Min: {item.min}</p>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Deadline</p>
-                    <p className="text-sm font-black tracking-tighter text-primary">
-                      {new Date(job.deadline).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
-                    </p>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))
-          )}
+            )}
+            {lowStockItems.length > 0 && (
+              <div className="p-3 bg-red-400/5 border-t border-border/50 text-center">
+                <Link href="/stock" className="text-xs font-bold text-red-400 hover:text-red-300">
+                  Restock Needed
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
+
       </div>
     </div>
   )

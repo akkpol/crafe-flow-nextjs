@@ -323,8 +323,8 @@ export default function CustomersPage() {
                                 </Label>
                                 <Input
                                     placeholder="0812345678"
-                                    value={form.phone}
-                                    onChange={e => setForm({ ...form, phone: e.target.value })}
+                                    value={(editingCustomer ? editingCustomer.phone : form.phone) || ''}
+                                    onChange={(e) => editingCustomer ? setEditingCustomer(prev => prev ? { ...prev, phone: e.target.value } : null) : setForm({ ...form, phone: e.target.value })}
                                     className="bg-white/5 border-white/10 focus:border-cyan-500/50"
                                 />
                             </div>
@@ -342,7 +342,7 @@ export default function CustomersPage() {
                                     }} />
                                     <Input
                                         placeholder="@lineid or Display Name"
-                                        value={form.lineId}
+                                        value={form.lineId || ''}
                                         onChange={e => setForm({ ...form, lineId: e.target.value })}
                                         className="bg-white/5 border-white/10 focus:border-cyan-500/50 text-xs"
                                     />
@@ -358,7 +358,7 @@ export default function CustomersPage() {
                             <Input
                                 placeholder="1234567890123"
                                 maxLength={13}
-                                value={form.taxId}
+                                value={form.taxId || ''}
                                 onChange={e => setForm({ ...form, taxId: e.target.value.replace(/\D/g, '') })}
                                 className="bg-white/5 border-white/10 focus:border-cyan-500/50 font-mono"
                             />
@@ -371,8 +371,8 @@ export default function CustomersPage() {
                             </Label>
                             <Textarea
                                 placeholder="ที่อยู่สำหรับออกใบเสนอราคา / ใบแจ้งหนี้"
-                                value={form.address}
-                                onChange={e => setForm({ ...form, address: e.target.value })}
+                                value={(editingCustomer ? editingCustomer.address : form.address) || ''}
+                                onChange={e => editingCustomer ? setEditingCustomer(prev => prev ? { ...prev, address: e.target.value } : null) : setForm({ ...form, address: e.target.value })}
                                 className="bg-white/5 border-white/10 focus:border-cyan-500/50 min-h-[80px]"
                             />
                         </div>

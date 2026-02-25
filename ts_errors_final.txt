@@ -1,0 +1,13 @@
+actions/customers.ts(96,54): error TS2339: Property 'errors' does not exist on type 'ZodError<{ name: string; phone?: string | null | undefined; lineId?: string | null | undefined; address?: string | null | undefined; taxId?: string | null | undefined; }>'.
+actions/customers.ts(140,54): error TS2339: Property 'errors' does not exist on type 'ZodError<{ name: string; phone?: string | null | undefined; lineId?: string | null | undefined; address?: string | null | undefined; taxId?: string | null | undefined; }>'.
+actions/quotations.ts(203,13): error TS2322: Type '{}' is not assignable to type 'number'.
+actions/quotations.ts(204,13): error TS2322: Type '{}' is not assignable to type 'number'.
+actions/quotations.ts(205,13): error TS2322: Type '{}' is not assignable to type 'number'.
+app/customers/page.tsx(326,37): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | number | readonly string[] | undefined'.
+  Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+app/customers/page.tsx(345,41): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | number | readonly string[] | undefined'.
+  Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+app/customers/page.tsx(361,33): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | number | readonly string[] | undefined'.
+  Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+app/customers/page.tsx(374,33): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | number | readonly string[] | undefined'.
+  Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.

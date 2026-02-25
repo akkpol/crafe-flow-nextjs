@@ -1,8 +1,11 @@
-'use server'
+﻿'use server'
 
 import { createClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 import type { Quotation, QuotationItem, QuotationInsert, QuotationItemInsert, DocumentStatus } from '@/lib/types'
+import { requirePermission } from '@/lib/auth'
+import { QuotationSchema, QuotationItemSchema } from '@/lib/schemas'
+import { z } from 'zod'
 
 // ============================================================
 // READ
@@ -64,15 +67,24 @@ async function generateQuotationNumber() {
 // ============================================================
 
 export async function createQuotation(
-    quotationData: Partial<QuotationInsert>,
-    items: Partial<QuotationItemInsert>[]
+    inQuotationData: z.input<typeof QuotationSchema>,
+    inItems: z.input<typeof QuotationItemSchema>[]
 ): Promise<{ success: boolean; data?: any; error?: string }> {
+    await requirePermission('billing')
+
+    const quotationData = QuotationSchema.parse(inQuotationData)
+    const items = z.array(QuotationItemSchema).parse(inItems)
+
     const supabase = await createClient()
     const quotationNumber = await generateQuotationNumber()
 
     // Fetch Organization ID
     const { data: org } = await supabase.from('Organization').select('id').single()
-    const organizationId = org?.id || 'demo-org-123'
+    const organizationId = org?.id || ''
+
+    if (!organizationId) {
+        return { success: false, error: 'Organization ID not found' }
+    }
 
     // 1. Create Quotation Header
     const { data: newQuotation, error: qtError } = await supabase
@@ -86,8 +98,8 @@ export async function createQuotation(
             vatAmount: quotationData.vatAmount || 0,
             grandTotal: quotationData.grandTotal || 0,
             customerId: quotationData.customerId,
-            expiresAt: (quotationData as any).expiresAt,
-            notes: (quotationData as any).notes,
+            expiresAt: quotationData.expiresAt,
+            notes: quotationData.notes,
             updatedAt: new Date().toISOString(),
         })
         .select()
@@ -105,11 +117,11 @@ export async function createQuotation(
             quotationId: newQuotation.id,
             name: item.name || 'Untitled Item',
             description: item.description || '',
-            width: item.width || 0,
-            height: item.height || 0,
-            quantity: item.quantity || 1,
-            unitPrice: item.unitPrice || 0,
-            totalPrice: item.totalPrice || 0,
+            width: Number(item.width) || 0,
+            height: Number(item.height) || 0,
+            quantity: Number(item.quantity) || 1,
+            unitPrice: Number(item.unitPrice) || 0,
+            totalPrice: Number(item.totalPrice) || 0,
             discount: item.discount || 0,
         }))
 
@@ -135,6 +147,8 @@ export async function createQuotation(
 // ============================================================
 
 export async function updateQuotationStatus(id: string, status: DocumentStatus) {
+    await requirePermission('billing')
+
     const supabase = await createClient()
     const { error } = await supabase
         .from('Quotation')
@@ -146,3 +160,76 @@ export async function updateQuotationStatus(id: string, status: DocumentStatus) 
     revalidatePath('/billing')
     return { success: true }
 }
+
+// ============================================================
+// CREATE QUOTATION + JOB (Quotation-First Workflow)
+// ============================================================
+
+export type CreateQuotationAndJobParams = {
+    quotationData: z.input<typeof QuotationSchema>
+    items: z.input<typeof QuotationItemSchema>[]
+    jobOptions?: {
+        deadline: string        // ISO date string
+        priority: 'low' | 'medium' | 'high' | 'urgent'
+        notes?: string
+    }
+}
+
+export async function createQuotationAndJob(
+    params: CreateQuotationAndJobParams
+): Promise<{ success: boolean; quotation?: any; order?: any; error?: string }> {
+    const { quotationData, items, jobOptions } = params
+
+    // Step 1: Create the Quotation
+    const qtResult = await createQuotation(quotationData, items)
+    if (!qtResult.success || !qtResult.data) {
+        return { success: false, error: qtResult.error }
+    }
+    const quotation = qtResult.data
+
+    // If no job options, just return the quotation
+    if (!jobOptions) {
+        return { success: true, quotation }
+    }
+
+    // Step 2: Auto-create a linked Job (Order)
+    const { createOrder } = await import('@/actions/orders')
+
+    const jobNotes = `[${quotation.quotationNumber}]${jobOptions.notes ? ' ' + jobOptions.notes : ''}`
+
+    const orderResult = await createOrder(
+        {
+            customerId: quotationData.customerId,
+            totalAmount: quotationData.totalAmount || 0,
+            vatAmount: quotationData.vatAmount || 0,
+            grandTotal: quotationData.grandTotal || 0,
+            deadline: jobOptions.deadline,
+            priority: jobOptions.priority,
+            notes: jobNotes,} as any,
+        items.map(item => ({
+            name: item.name || 'Untitled Item',
+            width: Number(item.width) || 0,
+            height: Number(item.height) || 0,
+            quantity: Number(item.quantity) || 1,
+            unitPrice: Number(item.unitPrice) || 0,
+            totalPrice: Number(item.totalPrice) || 0,
+            details: item.description || '',
+        }))
+    )
+
+    if (!orderResult.success) {
+        // QT was created but job failed — still a partial success
+        console.error('Job auto-create failed after QT created:', orderResult.error)
+        return { success: true, quotation, error: `QT created but Job failed: ${orderResult.error}` }
+    }
+
+    revalidatePath('/kanban')
+    revalidatePath('/billing')
+    revalidatePath('/')
+    return { success: true, quotation, order: orderResult.data }
+}
+
+
+
+
+

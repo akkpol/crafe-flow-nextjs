@@ -3,6 +3,9 @@
 import { createClient } from '@/lib/supabase-server'
 import { Material } from '@/lib/types'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/lib/auth'
+import { MaterialSchema } from '@/lib/schemas'
+import { z } from 'zod'
 
 export async function getStockItems() {
     const supabase = await createClient()
@@ -21,6 +24,8 @@ export async function getStockItems() {
 }
 
 export async function updateStockLevel(id: string, newAmount: number, reason: string) {
+    await requirePermission('stock')
+
     const supabase = await createClient()
 
     // 1. Get current stock
@@ -66,7 +71,12 @@ export async function updateStockLevel(id: string, newAmount: number, reason: st
     return { success: true }
 }
 
-export async function createMaterial(data: any) {
+export async function createMaterial(data: z.input<typeof MaterialSchema>) {
+    await requirePermission('stock')
+
+    // Parse to throw ZodError if invalid
+    const validatedData = MaterialSchema.parse(data)
+
     const supabase = await createClient()
 
     // Fetch Organization ID dynamically
@@ -77,13 +87,7 @@ export async function createMaterial(data: any) {
     const newMaterial = {
         id: crypto.randomUUID(),
         organizationId,
-        name: data.name,
-        type: data.type,
-        inStock: Number(data.inStock) || 0,
-        unit: data.unit || 'units',
-        costPrice: Number(data.costPrice) || 0,
-        sellingPrice: Number(data.sellingPrice) || 0,
-        wasteFactor: Number(data.wasteFactor) || 0,
+        ...validatedData,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
     }

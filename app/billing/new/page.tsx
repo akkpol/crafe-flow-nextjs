@@ -42,14 +42,16 @@ import {
     ChevronsUpDown,
     Save,
     Printer,
-    Loader2
+    Loader2,
+    Factory
 } from 'lucide-react'
 import { PricingCalculator, type CalcLineItem } from '@/components/pricing/PricingCalculator'
 import type { QuotationResult } from '@/lib/pricing-engine'
-import { createQuotation } from '@/actions/quotations'
+import { createQuotationAndJob } from '@/actions/quotations'
 import { getOrganization } from '@/actions/organization'
 import { DocumentLayout, type DocumentData } from '@/components/documents/DocumentLayout'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import * as VisuallyHiddenPrimitive from '@radix-ui/react-visually-hidden'
 import { toast } from 'sonner'
 
 // Dummy customer data (replace with server action search later)
@@ -65,6 +67,12 @@ export default function NewQuotationPage() {
     const [validUntil, setValidUntil] = useState<Date>(new Date(new Date().setDate(new Date().getDate() + 30)))
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [notes, setNotes] = useState('')
+
+    // Auto-create Job Toggle State
+    const [autoCreateJob, setAutoCreateJob] = useState(false)
+    const [jobDeadline, setJobDeadline] = useState<Date>(new Date(new Date().setDate(new Date().getDate() + 14)))
+    const [jobPriority, setJobPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium')
+    const [openJobDeadline, setOpenJobDeadline] = useState(false)
 
     // Organization & Preview State
     const [organization, setOrganization] = useState<any>(null)
@@ -128,6 +136,10 @@ export default function NewQuotationPage() {
             toast.error('กรุณาเลือกลูกค้า')
             return
         }
+        if (autoCreateJob && !jobDeadline) {
+            toast.error('กรุณาระบุวันกำหนดเสร็จของงาน')
+            return
+        }
 
         setIsSubmitting(true)
         try {
@@ -141,6 +153,7 @@ export default function NewQuotationPage() {
             }
             const itemsData = items.map(item => ({
                 name: item.description,
+                description: item.description,
                 width: item.width,
                 height: item.height,
                 quantity: item.quantity,
@@ -148,10 +161,24 @@ export default function NewQuotationPage() {
                 totalPrice: item.totalPrice
             }))
 
-            const result = await createQuotation(quotationData, itemsData)
+            const result = await createQuotationAndJob({
+                quotationData,
+                items: itemsData,
+                jobOptions: autoCreateJob ? {
+                    deadline: jobDeadline.toISOString(),
+                    priority: jobPriority,
+                    notes: notes,
+                } : undefined,
+            })
+
             if (result.success) {
-                toast.success('บันทึกใบเสนอราคาสำเร็จ')
-                router.push('/billing')
+                if (result.order) {
+                    toast.success(`สร้าง ${result.quotation?.quotationNumber} และงาน ${result.order?.orderNumber} เรียบร้อยแล้ว! 🎉`)
+                    router.push('/kanban')
+                } else {
+                    toast.success(`บันทึกใบเสนอราคา ${result.quotation?.quotationNumber} สำเร็จ`)
+                    router.push('/billing')
+                }
             } else {
                 toast.error(result.error || 'เกิดข้อผิดพลาดในการบันทึก')
             }
@@ -186,16 +213,21 @@ export default function NewQuotationPage() {
                                 ตัวอย่าง PDF
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto bg-gray-100 p-8">
-                            <div className="transform scale-90 origin-top">
-                                <DocumentLayout
-                                    type="QUOTATION"
-                                    org={organization || { name: 'Demo Org' }}
-                                    customer={{ name: selectedCustomer, address: customerDetails.address, taxId: customerDetails.taxId }}
-                                    data={prepareDocumentData()}
-                                />
+                        <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !translate-x-0 !translate-y-0 !top-0 !left-0 !rounded-none overflow-y-auto bg-gray-100 p-0 flex flex-col">
+                            <VisuallyHiddenPrimitive.Root asChild>
+                                <DialogTitle>ตัวอย่างใบเสนอราคา</DialogTitle>
+                            </VisuallyHiddenPrimitive.Root>
+                            <div className="flex-1 flex justify-center py-8 px-4">
+                                <div className="w-full max-w-3xl">
+                                    <DocumentLayout
+                                        type="QUOTATION"
+                                        org={organization || { name: 'Demo Org' }}
+                                        customer={{ name: selectedCustomer, address: customerDetails.address, taxId: customerDetails.taxId }}
+                                        data={prepareDocumentData()}
+                                    />
+                                </div>
                             </div>
-                            <Button className="fixed bottom-8 right-8 shadow-xl" onClick={() => window.print()}>
+                            <Button className="fixed bottom-8 right-8 shadow-xl z-50" onClick={() => window.print()}>
                                 <Printer className="mr-2 h-4 w-4" /> สั่งพิมพ์ / PDF
                             </Button>
                         </DialogContent>
@@ -363,6 +395,93 @@ export default function NewQuotationPage() {
                             if (res) setCalcResult(res)
                         }}
                     />
+                </CardContent>
+            </Card>
+
+            {/* Auto-Create Job Card */}
+            <Card className={cn(
+                "border-2 transition-all duration-300",
+                autoCreateJob ? "border-primary/40 bg-primary/5" : "border-dashed border-muted-foreground/20"
+            )}>
+                <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className={cn("p-2.5 rounded-xl transition-colors", autoCreateJob ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>
+                                <Factory className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <p className="font-bold text-sm tracking-tight">สร้างใบงาน (Job Ticket) อัตโนมัติ</p>
+                                <p className="text-xs text-muted-foreground">เมื่อบันทึก QT จะสร้างงานลงใน Kanban ทันที</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={autoCreateJob}
+                            onClick={() => setAutoCreateJob(prev => !prev)}
+                            className={cn(
+                                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                                autoCreateJob ? "bg-primary" : "bg-muted"
+                            )}
+                        >
+                            <span className={cn(
+                                "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform",
+                                autoCreateJob ? "translate-x-5" : "translate-x-0"
+                            )} />
+                        </button>
+                    </div>
+
+                    {/* Expanded fields when toggle is ON */}
+                    {autoCreateJob && (
+                        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-primary/10">
+                            {/* Deadline */}
+                            <div className="grid gap-2">
+                                <Label className="text-sm font-semibold">วันกำหนดเสร็จ</Label>
+                                <Popover open={openJobDeadline} onOpenChange={setOpenJobDeadline}>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className={cn("justify-start text-left font-normal", !jobDeadline && "text-muted-foreground")}>
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {jobDeadline ? format(jobDeadline, 'd MMM yyyy', { locale: th }) : 'เลือกวันที่'}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={jobDeadline}
+                                            onSelect={(d) => { if (d) setJobDeadline(d); setOpenJobDeadline(false) }}
+                                            disabled={(d) => d < new Date()}
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+
+                            {/* Priority */}
+                            <div className="grid gap-2">
+                                <Label className="text-sm font-semibold">ความสำคัญ</Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {([
+                                        { value: 'low', label: 'ต่ำ', color: 'text-muted-foreground', bg: 'bg-muted/50 hover:bg-muted border-muted' },
+                                        { value: 'medium', label: 'ปกติ', color: 'text-blue-600', bg: 'bg-blue-50 hover:bg-blue-100 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' },
+                                        { value: 'high', label: 'สูง', color: 'text-yellow-600', bg: 'bg-yellow-50 hover:bg-yellow-100 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800' },
+                                        { value: 'urgent', label: 'ด่วน!', color: 'text-red-600', bg: 'bg-red-50 hover:bg-red-100 border-red-200 dark:bg-red-900/20 dark:border-red-800' },
+                                    ] as const).map(p => (
+                                        <button
+                                            key={p.value}
+                                            type="button"
+                                            onClick={() => setJobPriority(p.value)}
+                                            className={cn(
+                                                "px-3 py-1.5 rounded-lg border text-xs font-bold transition-all",
+                                                p.bg, p.color,
+                                                jobPriority === p.value && "ring-2 ring-offset-1 ring-current"
+                                            )}
+                                        >
+                                            {p.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

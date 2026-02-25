@@ -73,7 +73,7 @@ export default function StockPage() {
         try {
             if (!newMaterial.name) return toast.error("กรุณาระบุชื่อสินค้า")
 
-            await createMaterial(newMaterial)
+            await createMaterial({ ...newMaterial, type: newMaterial.type as any })
             toast.success("เพิ่มสินค้าเรียบร้อยแล้ว")
             setIsAddOpen(false)
             setNewMaterial({
