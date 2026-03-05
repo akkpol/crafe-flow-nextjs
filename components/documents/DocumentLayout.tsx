@@ -75,14 +75,14 @@ export function DocumentLayout({ type, org, customer, data, className }: Documen
                 <div className="flex gap-4">
                     {/* Logo Placeholder */}
                     <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">
-                        {org.logoUrl ? <img src={org.logoUrl} alt="Logo" className="w-full h-full object-contain" /> : 'Logo'}
+                        {org?.logoUrl ? <img src={org.logoUrl} alt="Logo" className="w-full h-full object-contain" /> : 'Logo'}
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-primary">{org.name}</h1>
-                        <p className="text-xs text-gray-600 max-w-[300px] whitespace-pre-wrap">{org.address}</p>
+                        <h1 className="text-xl font-bold text-primary">{org?.name || 'Organization Name'}</h1>
+                        <p className="text-xs text-gray-600 max-w-[300px] whitespace-pre-wrap">{org?.address}</p>
                         <div className="flex gap-4 mt-2 text-xs text-gray-600">
-                            {org.taxId && <span>เลขผู้เสียภาษี: {org.taxId}</span>}
-                            {org.phone && <span>โทร: {org.phone}</span>}
+                            {org?.taxId && <span>เลขผู้เสียภาษี: {org.taxId}</span>}
+                            {org?.phone && <span>โทร: {org.phone}</span>}
                         </div>
                     </div>
                 </div>
@@ -116,11 +116,11 @@ export function DocumentLayout({ type, org, customer, data, className }: Documen
             <div className="grid grid-cols-2 gap-8 mb-8">
                 <div>
                     <h3 className="text-xs font-bold text-gray-500 uppercase mb-2">ลูกค้า (Customer)</h3>
-                    <p className="font-bold text-lg">{customer.name}</p>
-                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{customer.address || '-'}</p>
+                    <p className="font-bold text-lg">{customer?.name || 'ลูกค้าทั่วไป'}</p>
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{customer?.address || '-'}</p>
                     <div className="mt-2 text-sm text-gray-600">
-                        {customer.taxId && <p>เลขผู้เสียภาษี: {customer.taxId}</p>}
-                        {customer.phone && <p>โทร: {customer.phone}</p>}
+                        {customer?.taxId && <p>เลขผู้เสียภาษี: {customer.taxId}</p>}
+                        {customer?.phone && <p>โทร: {customer.phone}</p>}
                     </div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">

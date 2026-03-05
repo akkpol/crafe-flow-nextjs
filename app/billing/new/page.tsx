@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -91,6 +91,15 @@ export default function NewQuotationPage() {
 
     // Summary State
     const [discount, setDiscount] = useState(0)
+
+    // Fetch Organization Data
+    useEffect(() => {
+        const fetchOrg = async () => {
+            const orgData = await getOrganization()
+            setOrganization(orgData)
+        }
+        fetchOrg()
+    }, [])
 
     // Calculations
     const subtotal = calcResult?.itemsSubtotal || items.reduce((sum, item) => sum + item.totalPrice, 0)
@@ -221,8 +230,8 @@ export default function NewQuotationPage() {
                                 <div className="w-full max-w-3xl">
                                     <DocumentLayout
                                         type="QUOTATION"
-                                        org={organization || { name: 'Demo Org' }}
-                                        customer={{ name: selectedCustomer, address: customerDetails.address, taxId: customerDetails.taxId }}
+                                        org={organization}
+                                        customer={{ name: selectedCustomer || 'ลูกค้าทั่วไป', address: customerDetails.address, taxId: customerDetails.taxId }}
                                         data={prepareDocumentData()}
                                     />
                                 </div>
