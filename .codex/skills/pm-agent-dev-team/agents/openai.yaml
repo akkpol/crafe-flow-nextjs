@@ -1,0 +1,4 @@
+interface:
+  display_name: "PM Agent Dev Team"
+  short_description: "Drive execution for agent development work"
+  default_prompt: "Use $pm-agent-dev-team to turn the current product docs into an execution plan for the agent development team."
