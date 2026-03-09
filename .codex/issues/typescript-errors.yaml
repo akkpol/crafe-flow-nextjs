@@ -1,0 +1,139 @@
+# TypeScript Compilation Errors
+# Source: npx tsc --noEmit
+# Last Updated: 2025-03-09T11:20:00+07:00
+
+status: "pending_analysis"
+total_errors: 8
+
+errors:
+  - id: "TS-001"
+    severity: "blocker"
+    file: "actions/customers.ts"
+    line: 96
+    column: 54
+    code: "TS2339"
+    message: "Property 'errors' does not exist on type 'ZodError'"
+    context: |
+      // Current code likely has:
+      result.error.errors
+      // Should be:
+      result.error.issues
+    assigned_to: null
+    status: "open"
+    
+  - id: "TS-002"
+    severity: "blocker"
+    file: "actions/customers.ts"
+    line: 140
+    column: 54
+    code: "TS2339"
+    message: "Property 'errors' does not exist on type 'ZodError'"
+    context: |
+      // Same issue as TS-001
+      // ZodError uses .issues not .errors
+    assigned_to: null
+    status: "open"
+    
+  - id: "TS-003"
+    severity: "blocker"
+    file: "actions/quotations.ts"
+    line: 203
+    code: "TS2322"
+    message: "Type '{}' is not assignable to type 'number'"
+    context: |
+      // Empty object assigned where number expected
+      // Likely a calculation or default value issue
+    assigned_to: null
+    status: "open"
+    
+  - id: "TS-004"
+    severity: "blocker"
+    file: "actions/quotations.ts"
+    line: 204
+    code: "TS2322"
+    message: "Type '{}' is not assignable to type 'number'"
+    context: |
+      // Same pattern as TS-003
+    assigned_to: null
+    status: "open"
+    
+  - id: "TS-005"
+    severity: "blocker"
+    file: "actions/quotations.ts"
+    line: 205
+    code: "TS2322"
+    message: "Type '{}' is not assignable to type 'number'"
+    context: |
+      // Same pattern as TS-003
+    assigned_to: null
+    status: "open"
+    
+  - id: "TS-006"
+    severity: "medium"
+    file: "app/customers/page.tsx"
+    line: 326
+    column: 37
+    code: "TS2322"
+    message: "Type 'string | null | undefined' is not assignable to type 'string | number | readonly string[] | undefined'"
+    context: |
+      // Input value prop receiving null
+      // Need to coalesce: value={field ?? ''}
+    assigned_to: null
+    status: "open"
+    
+  - id: "TS-007"
+    severity: "medium"
+    file: "app/customers/page.tsx"
+    line: 345
+    column: 41
+    code: "TS2322"
+    message: "Type 'string | null | undefined' is not assignable to type 'string | number | readonly string[] | undefined'"
+    context: |
+      // Same pattern as TS-006
+    assigned_to: null
+    status: "open"
+    
+  - id: "TS-008"
+    severity: "medium"
+    file: "app/customers/page.tsx"
+    line: 361
+    column: 33
+    code: "TS2322"
+    message: "Type 'string | null | undefined' is not assignable to type 'string | number | readonly string[] | undefined'"
+    context: |
+      // Same pattern as TS-006
+    assigned_to: null
+    status: "open"
+
+# Additional error at line 374 (same pattern)
+# Grouped with TS-006/007/008
+
+analysis:
+  root_causes:
+    - cause: "ZodError API misuse"
+      affected: ["TS-001", "TS-002"]
+      fix_pattern: "Change .errors to .issues"
+      estimated_effort: "5 min"
+      
+    - cause: "Empty object as number default"
+      affected: ["TS-003", "TS-004", "TS-005"]
+      fix_pattern: "Use proper numeric default (0 or calculated value)"
+      estimated_effort: "15 min"
+      
+    - cause: "Null coalescing missing on form inputs"
+      affected: ["TS-006", "TS-007", "TS-008"]
+      fix_pattern: "Add ?? '' to value props"
+      estimated_effort: "10 min"
+
+recommended_assignment:
+  - agent: "integration_agent"
+    issues: ["TS-001", "TS-002"]
+    reason: "Shared validation pattern"
+    
+  - agent: "backend_agent"
+    issues: ["TS-003", "TS-004", "TS-005"]
+    reason: "Quotation calculation logic"
+    
+  - agent: "frontend_agent"
+    issues: ["TS-006", "TS-007", "TS-008"]
+    reason: "Form input handling"

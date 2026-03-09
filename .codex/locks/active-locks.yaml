@@ -1,0 +1,59 @@
+# CraftFlow Active Locks
+# Updated: 2025-03-09T11:00:00+07:00
+
+# =============================================================================
+# LOCK REGISTRY
+# =============================================================================
+
+active_locks: []
+
+# Example lock format:
+# - id: "lock-001"
+#   owner: "windsurf"
+#   lane: "integration"
+#   files:
+#     - "lib/types.ts"
+#   purpose: "Adding new type definitions"
+#   started_at: "2025-03-09T11:00:00+07:00"
+#   expected_release: "2025-03-09T12:00:00+07:00"
+#   depends_on: null
+
+# =============================================================================
+# PERMANENT OWNERSHIP (No lock needed - always owned)
+# =============================================================================
+
+permanent_ownership:
+  windsurf:
+    - "lib/types.ts"
+    - "lib/database.types.ts"
+    - "lib/schemas.ts"
+    - "components/documents/**"
+    - ".codex/**"
+    - "package.json"
+    - "tsconfig.json"
+    
+  anthropic:
+    - "app/customers/**"
+    - "app/jobs/**"
+    - "app/kanban/**"
+    - "app/files/**"
+    - "actions/customers.ts"
+    - "actions/orders.ts"
+    - "actions/files.ts"
+    - "actions/history.ts"
+
+# =============================================================================
+# SHARED FILES (Require lock before edit)
+# =============================================================================
+
+shared_files:
+  - "components/ui/**"
+  - "lib/utils.ts"
+  - "app/layout.tsx"
+  - "app/globals.css"
+
+# =============================================================================
+# LOCK HISTORY
+# =============================================================================
+
+released_locks: []

@@ -1,0 +1,39 @@
+# Unit Test Failures
+# Source: npm run test
+# Last Updated: 2025-03-09T11:20:00+07:00
+
+status: "not_run_yet"
+total_failures: 0
+
+# Template for logging failures:
+# failures:
+#   - id: "UT-001"
+#     severity: "blocker"
+#     test_file: "__tests__/path/to/test.ts"
+#     test_name: "should do something"
+#     suite: "describe block name"
+#     
+#     error:
+#       type: "AssertionError"
+#       message: "Expected X but got Y"
+#       expected: "X"
+#       actual: "Y"
+#       
+#     source:
+#       file: "lib/some-file.ts"
+#       line: 42
+#       function: "someFunction"
+#       
+#     context: |
+#       Additional context about the failure
+#       
+#     assigned_to: null
+#     status: "open"
+
+failures: []
+
+# Run command:
+# npm run test -- --reporter=json 2>&1 | Out-File test-results.json
+
+last_run: null
+next_scheduled_run: null

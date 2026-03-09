@@ -1,0 +1,28 @@
+# Supabase Configuration Template
+# Copy these variables to your .env.local file
+# Get these values from your Supabase project dashboard at https://supabase.com/dashboard
+
+# Supabase Project URL
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+
+# Supabase Anon Key (Public Key) - Safe to expose in browser
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+
+# Supabase Service Role Key (Server-side only) - NEVER expose in browser
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+
+# Database URL (Optional - for direct database connections)
+DATABASE_URL=postgresql://postgres:[password]@db.your-project-ref.supabase.co:5432/postgres
+
+# JWT Secret (for authentication)
+JWT_SECRET=your_jwt_secret_here
+
+# Optional configurations
+# SUPABASE_POOL_TIMEOUT=10
+# SUPABASE_MAX_CONNECTIONS=10
+
+# Instructions:
+# 1. Copy this content to .env.local file in your project root
+# 2. Replace the placeholder values with your actual Supabase credentials
+# 3. The .env.local file is automatically ignored by git
+# 4. Restart your development server after adding the variables

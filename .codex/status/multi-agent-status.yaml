@@ -1,0 +1,281 @@
+# CraftFlow Multi-Agent Status Board
+# Updated: 2025-03-09T11:00:00+07:00
+
+sprint: "Phase 1 - MVP Completion"
+goal: "Complete critical blockers for production deployment"
+
+# =============================================================================
+# CURRENT PROJECT STATE
+# =============================================================================
+
+project_health:
+  typescript_errors: 8  # From ts_errors_final.txt
+  test_coverage: "partial"
+  deployment_ready: false
+
+known_issues:
+  - file: "actions/customers.ts"
+    lines: [96, 140]
+    issue: "ZodError.errors property access incorrect"
+    severity: "medium"
+    
+  - file: "actions/quotations.ts"
+    lines: [203, 204, 205]
+    issue: "Type '{}' not assignable to number"
+    severity: "medium"
+    
+  - file: "app/customers/page.tsx"
+    lines: [326, 345, 361, 374]
+    issue: "null not assignable to input value"
+    severity: "low"
+
+# =============================================================================
+# LANE STATUS
+# =============================================================================
+
+lanes:
+  lane_a_finance:
+    name: "Lane A: Finance Documents"
+    owner: "Windsurf"
+    status: "ready"
+    tasks:
+      - id: "T-001"
+        title: "PDF Export - Quotation"
+        status: "ready"
+        priority: "P0"
+        files:
+          - "components/documents/DocumentLayout.tsx"  # EXISTS
+          - "lib/bahttext.ts"  # EXISTS
+        notes: "DocumentLayout component exists and is functional"
+        
+      - id: "T-002"
+        title: "PDF Export - Invoice"
+        status: "queued"
+        priority: "P0"
+        depends_on: ["T-001"]
+        
+      - id: "T-003"
+        title: "PDF Export - Receipt"
+        status: "queued"
+        priority: "P0"
+        depends_on: ["T-002"]
+        
+      - id: "T-004"
+        title: "Edit Quotation"
+        status: "queued"
+        priority: "P1"
+
+  lane_b_production:
+    name: "Lane B: Production & Files"
+    owner: "Anthropic IDE"
+    status: "ready"
+    tasks:
+      - id: "T-010"
+        title: "Design File Upload System"
+        status: "ready"
+        priority: "P0"
+        files:
+          - "app/files/**"
+          - "actions/files.ts"  # EXISTS - 2818 bytes
+        notes: "Basic file action exists, needs enhancement"
+        
+      - id: "T-011"
+        title: "Job Notes & History"
+        status: "queued"
+        priority: "P1"
+        files:
+          - "actions/history.ts"  # EXISTS - 512 bytes
+          - "app/jobs/**"
+
+  lane_c_customer:
+    name: "Lane C: Customer & CRM"
+    owner: "Anthropic IDE"
+    status: "ready"
+    tasks:
+      - id: "T-020"
+        title: "Customer Detail Page"
+        status: "ready"
+        priority: "P0"
+        files:
+          - "app/customers/page.tsx"  # EXISTS - has TS errors
+          - "actions/customers.ts"  # EXISTS - has TS errors
+        notes: "Fix TS errors first, then enhance"
+        
+      - id: "T-021"
+        title: "Outstanding Balance Display"
+        status: "queued"
+        priority: "P1"
+        depends_on: ["T-020"]
+
+  lane_d_settings:
+    name: "Lane D: Settings & Admin"
+    owner: "Anthropic IDE"
+    status: "not_started"
+    tasks:
+      - id: "T-030"
+        title: "Bank Account Settings"
+        status: "queued"
+        priority: "P1"
+        files:
+          - "app/settings/**"
+          - "actions/organization.ts"  # EXISTS - 1322 bytes
+          
+      - id: "T-031"
+        title: "Logo/Signature Upload"
+        status: "queued"
+        priority: "P1"
+
+      - id: "T-BE-001"
+        title: "Backend: OrderStatusConfig CRUD Actions"
+        status: "queued"
+        priority: "P1"
+        depends_on: ["T-INT-001"]
+        files:
+          - "actions/settings.ts"  # NEW FILE
+        notes: "Create CRUD server actions for custom order statuses"
+
+      - id: "T-FE-001"
+        title: "Frontend: Custom Status Settings UI"
+        status: "queued"
+        priority: "P1"
+        depends_on: ["T-INT-001"]
+        files:
+          - "app/settings/statuses/page.tsx"  # NEW
+          - "app/kanban/page.tsx"  # MODIFY
+        notes: "Settings UI for custom statuses + update Kanban to use dynamic statuses"
+
+  integration:
+    name: "Integration Lane"
+    owner: "Windsurf"
+    status: "in_progress"
+    tasks:
+      - id: "T-DB-001"
+        title: "Database Schema Migration - T-DB-001"
+        status: "completed"
+        priority: "P0"
+        files:
+          - "supabase/migrations/001_wave_a_missing_fields.sql"
+          - "supabase/migrations/002_wave_b_phase1_tables.sql"
+          - "supabase/migrations/003_wave_c_orderstatus_phase2.sql"
+          - "supabase/migrations/004_wave_d_indexes.sql"
+          - "supabase/migrations/005_wave_e_rls_policies.sql"
+        notes: "All migration files created. Ready to apply to Supabase."
+
+      - id: "T-INT-001"
+        title: "Update lib/types.ts with new schema types"
+        status: "ready"
+        priority: "P0"
+        depends_on: ["T-DB-001"]
+        files:
+          - "lib/types.ts"
+          - "lib/database.types.ts"
+        notes: "Add OrderStatusConfig, CustomerLocation, Attachment types. Refactor STATUS_CONFIG."
+
+      - id: "T-100"
+        title: "Fix TypeScript Errors"
+        status: "ready"
+        priority: "P0"
+        files:
+          - "actions/customers.ts"
+          - "actions/quotations.ts"
+          - "app/customers/page.tsx"
+        notes: "8 TS errors blocking build"
+
+# =============================================================================
+# SUMMARY
+# =============================================================================
+
+summary:
+  total_tasks: 15
+  completed: 1
+  in_progress: 0
+  ready: 4
+  queued: 10
+  blocked: 0
+  
+  phase_1_blockers:
+    - "T-DB-001: Database Schema Migration (SQL files ready, needs apply)"
+    - "T-INT-001: Update lib/types.ts with new schema"
+    - "PDF Export (3 templates)"
+    - "Design File Upload"
+    - "Customer Detail Page"
+    - "TypeScript Errors"
+
+# =============================================================================
+# RECOMMENDED PARALLEL EXECUTION
+# =============================================================================
+
+parallel_plan:
+  wave_1:
+    windsurf:
+      - "T-100: Fix TypeScript Errors"
+      - "T-001: PDF Export Quotation"
+    anthropic:
+      - "T-020: Customer Detail Page (after T-100)"
+      - "T-010: Design File Upload"
+      
+  wave_2:
+    windsurf:
+      - "T-002: PDF Export Invoice"
+      - "T-003: PDF Export Receipt"
+    anthropic:
+      - "T-021: Outstanding Balance"
+      - "T-011: Job Notes"
+      
+  wave_3:
+    windsurf:
+      - "T-004: Edit Quotation"
+    anthropic:
+      - "T-030: Bank Account Settings"
+      - "T-031: Logo/Signature Upload"
+
+# =============================================================================
+# IDE ASSIGNMENT
+# =============================================================================
+
+ide_assignment:
+  windsurf:
+    role: "PM + Integration + Lane A"
+    current_task: null
+    queue:
+      - "T-100"
+      - "T-001"
+      - "T-002"
+      - "T-003"
+      - "T-004"
+      
+  anthropic:
+    role: "Lane B + C + D"
+    current_task: null
+    queue:
+      - "T-010"
+      - "T-020"
+      - "T-011"
+      - "T-021"
+      - "T-030"
+      - "T-031"
+    
+    # Copy this to Anthropic IDE to start:
+    startup_instructions: |
+      ## Anthropic IDE Task Assignment
+      
+      You are assigned to Lane B, C, D for CraftFlow ERP.
+      
+      ### Your First Tasks (Parallel OK):
+      1. T-010: Design File Upload System
+         - Files: app/files/**, actions/files.ts
+         - Goal: Complete file upload with Supabase Storage
+         
+      2. T-020: Customer Detail Page  
+         - Files: app/customers/**, actions/customers.ts
+         - Goal: Fix TS errors, add customer detail view
+      
+      ### Rules:
+      - DO NOT edit: lib/types.ts, lib/database.types.ts
+      - DO NOT edit: components/documents/**
+      - Report status every 30 minutes
+      - Commit to branch: anthropic/lane-[b|c|d]-[task-name]
+      
+      ### Start Command:
+      Read the spec section for your task in craftflow-complete-specs.md
+      then implement following existing patterns.

@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// ─── Route Permission Matrix ────────────────────────────────────────────────
+// Route permission matrix
 // Admin-only routes: user management
 const ADMIN_ONLY_ROUTES = ['/admin']
 
@@ -11,7 +11,6 @@ const MANAGER_ROUTES = ['/billing', '/invoices', '/receipts']
 // Staff and above: production routes
 // REMOVED: staff now has access to these by default, guests/viewers are blocked
 // const STAFF_ROUTES = ['/kanban', '/jobs', '/stock']
-// ────────────────────────────────────────────────────────────────────────────
 
 export async function updateSession(request: NextRequest) {
     let response = NextResponse.next({
@@ -37,10 +36,12 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+        data: { user },
+    } = await supabase.auth.getUser()
     const pathname = request.nextUrl.pathname
 
-    // ── 1. Not logged in → /login ───────────────────────────────────────────
+    // 1) Not logged in -> /login
     if (!user && !pathname.startsWith('/login') && !pathname.startsWith('/auth')) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
@@ -57,7 +58,7 @@ export async function updateSession(request: NextRequest) {
         const roleName = (profile?.roles as any)?.name as string | undefined
         const isPending = !profile?.role_id
 
-        // ── 2. No role → /pending ───────────────────────────────────────────
+        // 2) User has no role -> /pending
         if (isPending && !pathname.startsWith('/pending') && !pathname.startsWith('/auth')) {
             const url = request.nextUrl.clone()
             url.pathname = '/pending'
@@ -70,8 +71,8 @@ export async function updateSession(request: NextRequest) {
             return NextResponse.redirect(url)
         }
 
-        // ── 3. /admin/* → admin only ────────────────────────────────────────
-        if (ADMIN_ONLY_ROUTES.some(r => pathname.startsWith(r))) {
+        // 3) /admin/* -> admin only
+        if (ADMIN_ONLY_ROUTES.some((r) => pathname.startsWith(r))) {
             if (roleName !== 'admin') {
                 const url = request.nextUrl.clone()
                 url.pathname = '/'
@@ -80,9 +81,9 @@ export async function updateSession(request: NextRequest) {
             }
         }
 
-        // ── 4. Finance routes → admin + manager + staff ─────────────────────
+        // 4) Finance routes -> admin + manager + staff
         // CHANGED: staff can now view billing (read-only enforced at component level)
-        if (MANAGER_ROUTES.some(r => pathname.startsWith(r))) {
+        if (MANAGER_ROUTES.some((r) => pathname.startsWith(r))) {
             if (roleName !== 'admin' && roleName !== 'manager' && roleName !== 'staff') {
                 const url = request.nextUrl.clone()
                 url.pathname = '/'
@@ -95,7 +96,7 @@ export async function updateSession(request: NextRequest) {
     return response
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     return await updateSession(request)
 }
 

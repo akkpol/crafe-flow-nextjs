@@ -1,0 +1,62 @@
+# Runtime Bugs
+# Source: Manual testing, user reports, logs
+# Last Updated: 2025-03-09T11:20:00+07:00
+
+status: "tracking"
+total_bugs: 0
+
+# Bug severity:
+# - critical: System down, data loss, security breach
+# - high: Major feature broken, no workaround
+# - medium: Feature partially broken, workaround exists
+# - low: Minor issue, cosmetic
+
+# Template:
+# bugs:
+#   - id: "BUG-001"
+#     severity: "high"
+#     category: "ui"  # ui | api | database | integration | performance
+#     
+#     title: "Customer form doesn't save"
+#     description: |
+#       When clicking save on the customer form, nothing happens.
+#       No error shown, no data saved.
+#       
+#     steps_to_reproduce:
+#       - "Go to /customers"
+#       - "Click 'Add Customer'"
+#       - "Fill in name and phone"
+#       - "Click Save"
+#       - "Nothing happens"
+#       
+#     expected: "Customer should be saved and appear in list"
+#     actual: "Form stays open, no feedback"
+#     
+#     environment:
+#       browser: "Chrome 120"
+#       os: "Windows 11"
+#       screen: "1920x1080"
+#       
+#     screenshots: []
+#     console_errors: []
+#     network_errors: []
+#     
+#     reported_by: "user"
+#     reported_at: "2025-03-09T11:00:00+07:00"
+#     
+#     root_cause: null  # Filled after analysis
+#     fix_approach: null
+#     
+#     assigned_to: null
+#     status: "open"  # open | analyzing | assigned | in_progress | resolved | wontfix
+
+bugs: []
+
+# Bug triage queue:
+needs_triage: []
+
+# In progress:
+in_progress: []
+
+# Resolved this sprint:
+resolved: []

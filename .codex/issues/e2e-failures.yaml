@@ -1,0 +1,46 @@
+# E2E Test Failures
+# Source: npm run test:e2e (Playwright)
+# Last Updated: 2025-03-09T11:20:00+07:00
+
+status: "not_run_yet"
+total_failures: 0
+
+# Template for logging failures:
+# failures:
+#   - id: "E2E-001"
+#     severity: "blocker"
+#     test_file: "e2e/path/to/test.spec.ts"
+#     test_name: "should navigate and do something"
+#     browser: "chromium"
+#     
+#     error:
+#       type: "TimeoutError"
+#       message: "Locator.click: Timeout 30000ms exceeded"
+#       selector: "button[data-testid='submit']"
+#       
+#     screenshot: "test-results/e2e-001-failure.png"
+#     trace: "test-results/e2e-001-trace.zip"
+#     
+#     steps_before_failure:
+#       - "Navigate to /customers"
+#       - "Click 'Add Customer' button"
+#       - "Fill form fields"
+#       - "Click submit (FAILED)"
+#       
+#     context: |
+#       Additional context about the failure
+#       
+#     assigned_to: null
+#     status: "open"
+
+failures: []
+
+# Run command:
+# npm run test:e2e -- --reporter=json 2>&1 | Out-File e2e-results.json
+
+# Prerequisites:
+# - Dev server must be running on port 3000
+# - Test database should be seeded
+
+last_run: null
+next_scheduled_run: null
