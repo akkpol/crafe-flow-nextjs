@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
-import { Invoice } from '@/lib/types'
+import type { InvoiceStatus } from '@/lib/types'
 import { requirePermission } from '@/lib/auth'
 import { InvoiceSchema, InvoiceItemSchema } from '@/lib/schemas'
 import { z } from 'zod'
@@ -185,7 +185,7 @@ export async function createInvoice(inData: z.input<typeof InvoiceSchema>, inIte
                 materialId: material.id,
                 type: 'STOCK_OUT',
                 quantity: quantityUsed,
-                reason: `Invoice ${invoiceNumber}`,
+                notes: `Invoice ${invoiceNumber}`,
                 createdAt: new Date().toISOString(),
             })
         }

@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
-import type { Quotation, QuotationItem, QuotationInsert, QuotationItemInsert, DocumentStatus } from '@/lib/types'
+import type { QuotationStatus, Quotation, QuotationWithRelations, QuotationInsert, QuotationItemInsert } from '@/lib/types'
 import { requirePermission } from '@/lib/auth'
 import { QuotationSchema, QuotationItemSchema } from '@/lib/schemas'
 import { z } from 'zod'
@@ -15,7 +15,7 @@ export async function getQuotations() {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('Quotation')
-        .select('*, Customer(name)')
+        .select('*, Customer(name, phone)')
         .order('createdAt', { ascending: false })
 
     if (error) {
@@ -25,7 +25,7 @@ export async function getQuotations() {
     return data
 }
 
-export async function getQuotation(id: string) {
+export async function getQuotation(id: string): Promise<QuotationWithRelations | null> {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('Quotation')
@@ -34,7 +34,7 @@ export async function getQuotation(id: string) {
         .single()
 
     if (error) return null
-    return data
+    return data as QuotationWithRelations
 }
 
 // ============================================================
@@ -43,7 +43,6 @@ export async function getQuotation(id: string) {
 
 async function generateQuotationNumber() {
     const supabase = await createClient()
-    // Find latest quotation number
     const { data } = await supabase
         .from('Quotation')
         .select('quotationNumber')
@@ -69,7 +68,7 @@ async function generateQuotationNumber() {
 export async function createQuotation(
     inQuotationData: z.input<typeof QuotationSchema>,
     inItems: z.input<typeof QuotationItemSchema>[]
-): Promise<{ success: boolean; data?: any; error?: string }> {
+): Promise<{ success: boolean; data?: Quotation; error?: string }> {
     await requirePermission('billing')
 
     const quotationData = QuotationSchema.parse(inQuotationData)
@@ -78,7 +77,6 @@ export async function createQuotation(
     const supabase = await createClient()
     const quotationNumber = await generateQuotationNumber()
 
-    // Fetch Organization ID
     const { data: org } = await supabase.from('Organization').select('id').single()
     const organizationId = org?.id || ''
 
@@ -97,9 +95,11 @@ export async function createQuotation(
             totalAmount: quotationData.totalAmount || 0,
             vatAmount: quotationData.vatAmount || 0,
             grandTotal: quotationData.grandTotal || 0,
+            discount: quotationData.discount || 0,
             customerId: quotationData.customerId,
             expiresAt: quotationData.expiresAt,
             notes: quotationData.notes,
+            paymenttermstext: quotationData.paymenttermstext,
             updatedAt: new Date().toISOString(),
         })
         .select()
@@ -117,6 +117,7 @@ export async function createQuotation(
             quotationId: newQuotation.id,
             name: item.name || 'Untitled Item',
             description: item.description || '',
+            details: item.details || '',
             width: Number(item.width) || 0,
             height: Number(item.height) || 0,
             quantity: Number(item.quantity) || 1,
@@ -131,7 +132,6 @@ export async function createQuotation(
 
         if (itemsError) {
             console.error('Error creating quotation items:', itemsError)
-            // Rollback
             await supabase.from('Quotation').delete().eq('id', newQuotation.id)
             return { success: false, error: itemsError.message }
         }
@@ -139,14 +139,92 @@ export async function createQuotation(
 
     revalidatePath('/billing')
     revalidatePath('/')
-    return { success: true, data: newQuotation }
+    return { success: true, data: newQuotation as Quotation }
 }
 
 // ============================================================
-// UPDATE STATUS
+// UPDATE — Header + Items (full edit)
 // ============================================================
 
-export async function updateQuotationStatus(id: string, status: DocumentStatus) {
+export async function updateQuotation(
+    id: string,
+    inQuotationData: z.input<typeof QuotationSchema>,
+    inItems: z.input<typeof QuotationItemSchema>[]
+): Promise<{ success: boolean; error?: string }> {
+    await requirePermission('billing')
+
+    const quotationData = QuotationSchema.parse(inQuotationData)
+    const items = z.array(QuotationItemSchema).parse(inItems)
+
+    const supabase = await createClient()
+
+    // Guard: only DRAFT quotations can be edited
+    const { data: existing } = await supabase
+        .from('Quotation')
+        .select('status')
+        .eq('id', id)
+        .single()
+
+    if (!existing) return { success: false, error: 'Quotation not found' }
+    if (existing.status !== 'DRAFT') {
+        return { success: false, error: `ไม่สามารถแก้ไขใบเสนอราคาที่มีสถานะ ${existing.status} ได้` }
+    }
+
+    // 1. Update header
+    const { error: updateError } = await supabase
+        .from('Quotation')
+        .update({
+            totalAmount: quotationData.totalAmount || 0,
+            vatAmount: quotationData.vatAmount || 0,
+            grandTotal: quotationData.grandTotal || 0,
+            discount: quotationData.discount || 0,
+            customerId: quotationData.customerId,
+            expiresAt: quotationData.expiresAt,
+            notes: quotationData.notes,
+            paymenttermstext: quotationData.paymenttermstext,
+            updatedAt: new Date().toISOString(),
+        })
+        .eq('id', id)
+
+    if (updateError) return { success: false, error: updateError.message }
+
+    // 2. Replace items (delete old + insert new)
+    await supabase.from('QuotationItem').delete().eq('quotationId', id)
+
+    if (items.length > 0) {
+        const itemsToInsert = items.map(item => ({
+            id: crypto.randomUUID(),
+            quotationId: id,
+            name: item.name || 'Untitled Item',
+            description: item.description || '',
+            details: item.details || '',
+            width: Number(item.width) || 0,
+            height: Number(item.height) || 0,
+            quantity: Number(item.quantity) || 1,
+            unitPrice: Number(item.unitPrice) || 0,
+            totalPrice: Number(item.totalPrice) || 0,
+            discount: item.discount || 0,
+        }))
+
+        const { error: itemsError } = await supabase
+            .from('QuotationItem')
+            .insert(itemsToInsert)
+
+        if (itemsError) return { success: false, error: itemsError.message }
+    }
+
+    revalidatePath('/billing')
+    return { success: true }
+}
+
+// ============================================================
+// UPDATE STATUS — จาก status เดิม → status ใหม่
+// ============================================================
+
+export async function updateQuotationStatus(
+    id: string,
+    status: QuotationStatus
+): Promise<{ success: boolean; error?: string }> {
     await requirePermission('billing')
 
     const supabase = await createClient()
@@ -162,37 +240,129 @@ export async function updateQuotationStatus(id: string, status: DocumentStatus) 
 }
 
 // ============================================================
-// CREATE QUOTATION + JOB (Quotation-First Workflow)
+// ACCEPT QUOTATION → Auto-create Order (Quotation-First Workflow)
+// ============================================================
+
+export async function acceptQuotation(
+    quotationId: string
+): Promise<{ success: boolean; orderId?: string; error?: string }> {
+    await requirePermission('billing')
+
+    const supabase = await createClient()
+
+    // 1. Fetch quotation with items
+    const quotation = await getQuotation(quotationId)
+    if (!quotation) return { success: false, error: 'Quotation not found' }
+
+    if (quotation.status === 'ACCEPTED') {
+        return { success: false, error: 'ใบเสนอราคานี้ถูกยืนยันแล้ว' }
+    }
+
+    // 2. Mark quotation as ACCEPTED
+    const { error: acceptError } = await supabase
+        .from('Quotation')
+        .update({
+            status: 'ACCEPTED',
+            approvedat: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        })
+        .eq('id', quotationId)
+
+    if (acceptError) return { success: false, error: acceptError.message }
+
+    // 3. Auto-create linked Order
+    const { createOrder } = await import('@/actions/orders')
+
+    const orderResult = await createOrder(
+        {
+            customerId: quotation.customerId ?? undefined,
+            totalAmount: quotation.totalAmount,
+            vatAmount: quotation.vatAmount,
+            grandTotal: quotation.grandTotal,
+            notes: `สร้างจากใบเสนอราคา ${quotation.quotationNumber}`,
+            quotationid: quotationId,
+        },
+        (quotation.QuotationItem || []).map(item => ({
+            name: item.name,
+            width: item.width ?? undefined,
+            height: item.height ?? undefined,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+            details: item.details ?? item.description ?? '',
+        }))
+    )
+
+    if (!orderResult.success) {
+        // QT accepted but order failed — rollback QT to SENT
+        await supabase.from('Quotation').update({ status: 'SENT', updatedAt: new Date().toISOString() }).eq('id', quotationId)
+        return { success: false, error: `ยืนยันใบเสนอราคาสำเร็จแต่สร้างงานไม่ได้: ${orderResult.error}` }
+    }
+
+    revalidatePath('/billing')
+    revalidatePath('/kanban')
+    revalidatePath('/')
+    return { success: true, orderId: orderResult.data?.id }
+}
+
+// ============================================================
+// REJECT QUOTATION
+// ============================================================
+
+export async function rejectQuotation(
+    quotationId: string,
+    reason: string
+): Promise<{ success: boolean; error?: string }> {
+    await requirePermission('billing')
+
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('Quotation')
+        .update({
+            status: 'REJECTED',
+            rejectionreason: reason,
+            updatedAt: new Date().toISOString(),
+        })
+        .eq('id', quotationId)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/billing')
+    return { success: true }
+}
+
+// ============================================================
+// CREATE QUOTATION + JOB (Quotation-First Workflow — deprecated)
+// ใช้ createQuotation + acceptQuotation แยกกัน ดีกว่า
 // ============================================================
 
 export type CreateQuotationAndJobParams = {
     quotationData: z.input<typeof QuotationSchema>
     items: z.input<typeof QuotationItemSchema>[]
     jobOptions?: {
-        deadline: string        // ISO date string
+        deadline: string
         priority: 'low' | 'medium' | 'high' | 'urgent'
         notes?: string
     }
 }
 
+import { Order } from '@/lib/types'
+
 export async function createQuotationAndJob(
     params: CreateQuotationAndJobParams
-): Promise<{ success: boolean; quotation?: any; order?: any; error?: string }> {
+): Promise<{ success: boolean; quotation?: Quotation; order?: Order; error?: string }> {
     const { quotationData, items, jobOptions } = params
 
-    // Step 1: Create the Quotation
     const qtResult = await createQuotation(quotationData, items)
     if (!qtResult.success || !qtResult.data) {
         return { success: false, error: qtResult.error }
     }
     const quotation = qtResult.data
 
-    // If no job options, just return the quotation
     if (!jobOptions) {
         return { success: true, quotation }
     }
 
-    // Step 2: Auto-create a linked Job (Order)
     const { createOrder } = await import('@/actions/orders')
 
     const jobNotes = `[${quotation.quotationNumber}]${jobOptions.notes ? ' ' + jobOptions.notes : ''}`
@@ -205,7 +375,9 @@ export async function createQuotationAndJob(
             grandTotal: quotationData.grandTotal || 0,
             deadline: jobOptions.deadline,
             priority: jobOptions.priority,
-            notes: jobNotes,} as any,
+            notes: jobNotes,
+            quotationid: quotation.id,
+        } as any,
         items.map(item => ({
             name: item.name || 'Untitled Item',
             width: Number(item.width) || 0,
@@ -218,7 +390,6 @@ export async function createQuotationAndJob(
     )
 
     if (!orderResult.success) {
-        // QT was created but job failed — still a partial success
         console.error('Job auto-create failed after QT created:', orderResult.error)
         return { success: true, quotation, error: `QT created but Job failed: ${orderResult.error}` }
     }
@@ -228,8 +399,3 @@ export async function createQuotationAndJob(
     revalidatePath('/')
     return { success: true, quotation, order: orderResult.data }
 }
-
-
-
-
-

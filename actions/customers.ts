@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/auth'
 import { CustomerSchema } from '@/lib/schemas'
 import { z } from 'zod'
+import type { Customer } from '@/lib/types'
 
 // ============================================================
 // TYPES
@@ -12,17 +13,9 @@ import { z } from 'zod'
 
 export type CustomerInput = z.input<typeof CustomerSchema>
 
-export interface CustomerRow {
-    id: string
-    organizationId: string
-    name: string
-    phone: string | null
-    lineId: string | null
-    address: string | null
-    taxId: string | null
-    createdAt: string
-    updatedAt: string
-}
+/** @deprecated ใช้ Customer จาก lib/types แทน */
+export type CustomerRow = Customer
+
 
 // Dynamic Org ID fetching instead of hardcoded
 // const DEFAULT_ORG_ID = 'demo-org-123'

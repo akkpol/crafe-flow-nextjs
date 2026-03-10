@@ -2,9 +2,10 @@
 
 import { createClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
-import type { Order, OrderItem, OrderStatus, OrderInsert, OrderItemInsert } from '@/lib/types'
+import type { Order, OrderStatus, OrderInsert, OrderItemInsert, OrderWithRelations } from '@/lib/types'
 import { requirePermission } from '@/lib/auth'
-
+import { OrderSchema, OrderItemSchema, UpdateOrderProgressSchema } from '@/lib/schemas'
+import { z } from 'zod'
 
 // ============================================================
 // READ
@@ -24,18 +25,16 @@ export async function getOrders() {
     return data
 }
 
-
-
-export async function getOrder(id: string) {
+export async function getOrder(id: string): Promise<OrderWithRelations | null> {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('Order')
-        .select('*, Customer(*), OrderItem(*)')
+        .select('*, Customer(*), OrderItem(*), DesignFile(*)')
         .eq('id', id)
         .single()
 
     if (error) return null
-    return data
+    return data as unknown as OrderWithRelations
 }
 
 // ============================================================
@@ -44,7 +43,6 @@ export async function getOrder(id: string) {
 
 async function generateOrderNumber() {
     const supabase = await createClient()
-    // Find latest order number
     const { data } = await supabase
         .from('Order')
         .select('orderNumber')
@@ -70,18 +68,16 @@ async function generateOrderNumber() {
 export async function createOrder(
     orderData: Partial<OrderInsert>,
     items: Partial<OrderItemInsert>[]
-): Promise<{ success: boolean; data?: any; error?: string }> {
-    // Permission guard — creating orders requires 'orders' permission
+): Promise<{ success: boolean; data?: Order; error?: string }> {
     await requirePermission('orders')
 
     const supabase = await createClient()
     const orderNumber = await generateOrderNumber()
 
-    // Fetch Organization ID dynamically
     const { data: org } = await supabase.from('Organization').select('id').single()
     const organizationId = org?.id ?? ''
 
-    // 1. Create Order Headers
+    // 1. Create Order Header
     const { data: newOrder, error: orderError } = await supabase
         .from('Order')
         .insert({
@@ -94,9 +90,12 @@ export async function createOrder(
             grandTotal: orderData.grandTotal || 0,
             customerId: orderData.customerId,
             deadline: orderData.deadline,
+            installationdate: orderData.installationdate,
             priority: orderData.priority || 'medium',
             notes: orderData.notes,
-            updatedAt: new Date().toISOString(), // Add this
+            quotationid: orderData.quotationid,
+            progresspercent: 0,
+            updatedAt: new Date().toISOString(),
         })
         .select()
         .single()
@@ -126,37 +125,57 @@ export async function createOrder(
 
         if (itemsError) {
             console.error('Error creating order items:', itemsError)
-            // Rollback (delete order)
             await supabase.from('Order').delete().eq('id', newOrder.id)
             return { success: false, error: itemsError.message }
         }
     }
 
+    // Log history
+    await logOrderHistory(newOrder.id, 'ORDER_CREATED', { orderNumber, status: 'new' })
+
     revalidatePath('/kanban')
     revalidatePath('/jobs')
-    revalidatePath('/') // Dashboard
-    return { success: true, data: newOrder }
+    revalidatePath('/')
+    return { success: true, data: newOrder as Order }
 }
 
 // ============================================================
-// UPDATE
+// UPDATE STATUS
 // ============================================================
 
 export async function updateOrderStatus(id: string, status: OrderStatus) {
     const supabase = await createClient()
+
+    // Fetch old status for history
+    const { data: current } = await supabase
+        .from('Order')
+        .select('status')
+        .eq('id', id)
+        .single()
+
     const { error } = await supabase
         .from('Order')
-        .update({ status, updatedAt: new Date().toISOString() })
+        .update({
+            status,
+            updatedAt: new Date().toISOString(),
+            ...(status === 'done' ? { completedat: new Date().toISOString(), progresspercent: 100 } : {}),
+        })
         .eq('id', id)
 
     if (error) return { success: false, error: error.message }
 
-    // Log history
-    await logOrderHistory(id, 'STATUS_CHANGE', { status })
+    await logOrderHistory(id, 'STATUS_CHANGE', {
+        oldStatus: current?.status,
+        newStatus: status,
+    })
 
     revalidatePath('/kanban')
     return { success: true }
 }
+
+// ============================================================
+// UPDATE ASSIGNEE
+// ============================================================
 
 export async function updateOrderAssignee(orderId: string, assigneeId: string | null) {
     const supabase = await createClient()
@@ -174,18 +193,68 @@ export async function updateOrderAssignee(orderId: string, assigneeId: string | 
     return { success: true }
 }
 
-async function logOrderHistory(orderId: string, action: string, details: any) {
+// ============================================================
+// UPDATE PROGRESS
+// ============================================================
+
+export async function updateOrderProgress(
+    orderId: string,
+    progresspercent: number
+): Promise<{ success: boolean; error?: string }> {
+    const validated = UpdateOrderProgressSchema.parse({ progresspercent })
+
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('Order')
+        .update({
+            progresspercent: validated.progresspercent,
+            updatedAt: new Date().toISOString(),
+        })
+        .eq('id', orderId)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/kanban')
+    return { success: true }
+}
+
+// ============================================================
+// UPDATE ORDER (full update — deadline, notes, priority, installationdate)
+// ============================================================
+
+export async function updateOrder(
+    id: string,
+    data: Partial<Pick<Order, 'deadline' | 'notes' | 'priority' | 'installationdate' | 'customerId'>>
+): Promise<{ success: boolean; error?: string }> {
+    const supabase = await createClient()
+
+    const { error } = await supabase
+        .from('Order')
+        .update({ ...data, updatedAt: new Date().toISOString() })
+        .eq('id', id)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/kanban')
+    revalidatePath('/jobs')
+    return { success: true }
+}
+
+// ============================================================
+// HISTORY LOG (internal helper)
+// ============================================================
+
+async function logOrderHistory(orderId: string, action: string, details: Record<string, unknown>) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-
-    // Check if user exists (might be anon or server action limitation?)
-    // If no user, maybe use a system ID or null.
 
     await supabase.from('OrderHistory').insert({
         orderId,
         action,
         details: JSON.stringify(details),
-        actorId: user?.id,
-        createdAt: new Date().toISOString()
+        oldStatus: details.oldStatus as string ?? null,
+        newStatus: details.newStatus as string ?? null,
+        actorId: user?.id ?? null,
+        createdAt: new Date().toISOString(),
     })
 }

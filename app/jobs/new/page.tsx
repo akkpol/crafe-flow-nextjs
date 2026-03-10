@@ -132,7 +132,7 @@ export default function NewJobPage() {
                 }])
 
                 if (qtResult.success) {
-                    toast.success(`ออกใบเสนอราคา ${qtResult.data.quotationNumber} เรียบร้อย`)
+                    toast.success(`ออกใบเสนอราคา ${qtResult.data?.quotationNumber} เรียบร้อย`)
                 }
             }
 

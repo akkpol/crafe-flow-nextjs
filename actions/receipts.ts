@@ -80,7 +80,7 @@ export async function createReceipt(data: {
     if (updatedInvoice?.orderId) {
         const { error: orderError } = await supabase
             .from('Order')
-            .update({ status: 'completed', updatedAt: new Date().toISOString() })
+            .update({ status: 'done', completedat: new Date().toISOString(), progresspercent: 100, updatedAt: new Date().toISOString() })
             .eq('id', updatedInvoice.orderId)
 
         if (!orderError) {

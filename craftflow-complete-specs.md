@@ -1,4 +1,5 @@
 # CraftFlow ERP - Complete Feature Specification
+>
 > **Version:** 3.0 - Complete Modern B2B System
 > **Last Updated:** 2025-03-08
 > **Purpose:** Comprehensive specification for AI agents to implement
@@ -70,6 +71,7 @@ CraftFlow v3.0 adds three competitive advantages that address common limitations
 ### 2.1 Channel Overview
 
 System must support customer contact from:
+
 - 🏪 Walk-in (front desk)
 - 📞 Phone call
 - 💬 LINE Official Account
@@ -81,6 +83,7 @@ System must support customer contact from:
 ### 2.2 Feature: Walk-in Customer Registration
 
 **User Story:**
+
 - AS a front desk staff
 - I WANT to quickly register walk-in customers
 - SO THAT I can capture their info without slowing down service
@@ -88,6 +91,7 @@ System must support customer contact from:
 **Functional Requirements:**
 
 #### 2.2.1 Quick Registration Form
+
 ```typescript
 interface QuickCustomerForm {
   // Minimum required fields
@@ -108,15 +112,17 @@ interface QuickCustomerForm {
 ```
 
 **UI Requirements:**
+
 - Auto-focus on search field when page loads
 - Real-time search as user types (debounced 300ms)
 - Show "Create New" button if no match found
-- Keyboard shortcuts: 
+- Keyboard shortcuts:
   - `Ctrl+N` = New customer
   - `Enter` = Select first result
   - `Esc` = Clear search
 
 **Validation Rules:**
+
 - Phone must be Thai format (10 digits starting with 0)
 - Duplicate phone detection with merge option
 - Name minimum 2 characters
@@ -124,12 +130,14 @@ interface QuickCustomerForm {
 #### 2.2.2 Existing Customer Quick Lookup
 
 **Search Capabilities:**
+
 - Search by: name (partial match), phone (exact or last 4 digits), LINE ID
 - Show recent interactions (last 3)
 - Show outstanding balance prominently
 - Show last order date
 
 **Display Format:**
+
 ```
 📱 คุณสมชาย (089-xxx-1234) | LINE: somchai99
 💰 ค้างชำระ: 15,000 บาท | ซื้อล่าสุด: 15/02/2025
@@ -140,6 +148,7 @@ interface QuickCustomerForm {
 ### 2.3 Feature: Phone Call Registration
 
 **User Story:**
+
 - AS a staff receiving phone calls
 - I WANT to register customer info while talking
 - SO THAT I can capture details without asking them to repeat
@@ -147,6 +156,7 @@ interface QuickCustomerForm {
 **Functional Requirements:**
 
 #### 2.3.1 Call Intake Form
+
 ```typescript
 interface PhoneCallIntake {
   // Call metadata
@@ -170,6 +180,7 @@ interface PhoneCallIntake {
 ```
 
 **Call Script Template (Optional Feature):**
+
 - Pre-set questions for different inquiry types
 - Checklist to ensure all info captured
 - Quick responses for common questions
@@ -177,6 +188,7 @@ interface PhoneCallIntake {
 ### 2.4 Feature: LINE OA Integration
 
 **User Story:**
+
 - AS a customer
 - I WANT to contact the business via LINE
 - SO THAT I can inquire conveniently
@@ -184,6 +196,7 @@ interface PhoneCallIntake {
 **Functional Requirements:**
 
 #### 2.4.1 LINE Webhook Handler
+
 ```typescript
 interface LINEWebhookPayload {
   events: LINEEvent[];
@@ -206,6 +219,7 @@ interface LINEEvent {
 ```
 
 **Auto-Response Features:**
+
 - Welcome message on first contact/follow
 - Auto-reply for common keywords:
   - "ราคา" / "price" → Send quotation template message
@@ -216,6 +230,7 @@ interface LINEEvent {
 #### 2.4.2 LINE User Auto-Capture
 
 **Automatic Actions:**
+
 1. When user sends first message:
    - Fetch LINE profile (displayName, pictureUrl, statusMessage)
    - Create/update entry in `line_users` table
@@ -223,6 +238,7 @@ interface LINEEvent {
    - If not matched → Create lead entry
 
 2. Display Name Matching Logic:
+
 ```typescript
 // Try to match with existing customer
 const possibleMatches = await searchCustomers({
@@ -242,6 +258,7 @@ if (possibleMatches.length === 1) {
 #### 2.4.3 LINE Message Dashboard
 
 **Staff Interface Requirements:**
+
 - Real-time inbox (WebSocket or polling every 5s)
 - Conversation view grouped by LINE user
 - Unread message count badge
@@ -251,6 +268,7 @@ if (possibleMatches.length === 1) {
 - Internal notes (not visible to customer)
 
 **UI Components:**
+
 ```
 ┌─────────────────────────────────────────┐
 │ 💬 LINE Messages              [🔍][⚙️]│
@@ -267,6 +285,7 @@ if (possibleMatches.length === 1) {
 ```
 
 **Notification System:**
+
 - Browser push notifications for new messages
 - Sound alert (can disable)
 - Desktop notification (if permitted)
@@ -275,6 +294,7 @@ if (possibleMatches.length === 1) {
 ### 2.5 Feature: Facebook Integration
 
 **User Story:**
+
 - AS a customer
 - I WANT to message the business on Facebook
 - SO THAT I can use my preferred platform
@@ -284,11 +304,13 @@ if (possibleMatches.length === 1) {
 #### 2.5.1 Facebook Messenger Integration
 
 **Setup Requirements:**
+
 - Facebook App integration via Graph API
 - Webhook for page messages
 - Page Access Token management
 
 **Similar to LINE with additions:**
+
 ```typescript
 interface FacebookMessage {
   senderId: string;           // Facebook User ID (PSID)
@@ -306,6 +328,7 @@ interface FacebookMessage {
 ```
 
 **Auto-Link with Customer:**
+
 - Fetch public profile (name, profile picture)
 - Match with existing customers
 - Store mapping in database
@@ -313,6 +336,7 @@ interface FacebookMessage {
 #### 2.5.2 Facebook Comments Monitoring
 
 **Additional Feature:**
+
 - Monitor comments on Facebook posts
 - Alert staff to questions/inquiries in comments
 - Quick reply from dashboard
@@ -321,6 +345,7 @@ interface FacebookMessage {
 ### 2.6 Feature: Email & Web Form Intake
 
 **User Story:**
+
 - AS a customer
 - I WANT to submit inquiry via website
 - SO THAT I can provide detailed information
@@ -330,6 +355,7 @@ interface FacebookMessage {
 #### 2.6.1 Web Contact Form
 
 **Public Form Fields:**
+
 ```typescript
 interface WebContactForm {
   // Required
@@ -355,24 +381,27 @@ interface WebContactForm {
 ```
 
 **Form Validation:**
+
 - Real-time validation on blur
 - Show error messages inline
 - reCAPTCHA v3 for spam prevention
 - Honeypot field for bot detection
 
 **Submission Flow:**
+
 1. Validate all fields
 2. Upload attachments to storage
 3. Create lead in database
 4. Send confirmation email to customer
 5. Notify staff via:
-   - Email to sales@company.com
+   - Email to <sales@company.com>
    - Dashboard notification
    - LINE notify (optional)
 
 #### 2.6.2 Email Parser (Advanced)
 
 **Automatic Email Processing:**
+
 ```typescript
 interface EmailInbound {
   from: string;              // sender@email.com
@@ -390,6 +419,7 @@ interface EmailInbound {
 ```
 
 **AI-Powered Email Categorization:**
+
 - Use LLM to analyze email content
 - Extract:
   - Intent (quotation request, status inquiry, complaint)
@@ -402,6 +432,7 @@ interface EmailInbound {
 ### 2.7 Feature: Unified Inbox
 
 **User Story:**
+
 - AS a staff member
 - I WANT to see all customer messages in one place
 - SO THAT I don't miss any inquiries
@@ -411,6 +442,7 @@ interface EmailInbound {
 #### 2.7.1 Omnichannel Dashboard
 
 **Consolidated View:**
+
 ```
 ┌──────────────────────────────────────────────────────┐
 │ 📬 All Messages                   [Filters] [Search] │
@@ -433,6 +465,7 @@ interface EmailInbound {
 ```
 
 **Filter Options:**
+
 - Channel (LINE, FB, Email, Phone, Walk-in)
 - Status (New, In Progress, Resolved, Archived)
 - Assigned to (Me, Unassigned, Team member)
@@ -441,6 +474,7 @@ interface EmailInbound {
 - Customer type (New lead, Existing customer)
 
 **Bulk Actions:**
+
 - Assign multiple messages
 - Mark as resolved
 - Archive
@@ -449,6 +483,7 @@ interface EmailInbound {
 ### 2.8 Feature: Customer Profile Management
 
 **User Story:**
+
 - AS a staff
 - I WANT to see complete customer history
 - SO THAT I can provide personalized service
@@ -458,6 +493,7 @@ interface EmailInbound {
 #### 2.8.1 Customer Detail Page
 
 **Layout Structure:**
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ [← Back]  Customer: คุณสมชาย ใจดี         [Edit] [⋮]    │
@@ -506,6 +542,7 @@ interface EmailInbound {
 #### 2.8.2 Customer Segmentation
 
 **Auto-Tagging System:**
+
 ```typescript
 interface CustomerSegment {
   id: string;
@@ -548,6 +585,7 @@ const segments = [
 #### 2.8.3 Credit Management
 
 **Credit Limit System:**
+
 ```typescript
 interface CreditSettings {
   customerId: string;
@@ -571,6 +609,7 @@ interface CreditSettings {
 ```
 
 **Credit Check at Quotation:**
+
 - Warn if creating quotation exceeds available credit
 - Show approval workflow if exceeded
 - Block order creation if severely exceeded (configurable)
@@ -582,6 +621,7 @@ interface CreditSettings {
 ### 3.1 Feature: Smart Quotation Builder
 
 **User Story:**
+
 - AS a sales person
 - I WANT to create quotations quickly with accurate pricing
 - SO THAT I can respond to customers fast
@@ -591,6 +631,7 @@ interface CreditSettings {
 #### 3.1.1 Product/Service Catalog
 
 **Pre-configured Products:**
+
 ```typescript
 interface ProductTemplate {
   id: string;
@@ -628,6 +669,7 @@ interface ProductTemplate {
 ```
 
 **Example Products:**
+
 - ป้าย LED (LED Sign)
   - Pricing: per square meter
   - Materials: LED modules, aluminum frame, power supply
@@ -644,6 +686,7 @@ interface ProductTemplate {
 #### 3.1.2 Dynamic Pricing Calculator
 
 **Calculation Engine:**
+
 ```typescript
 interface QuotationCalculator {
   // Base calculation
@@ -677,6 +720,7 @@ interface QuotationCalculator {
 ```
 
 **Volume Discount Tiers:**
+
 ```typescript
 interface VolumeDiscount {
   materialId: string;
@@ -702,6 +746,7 @@ const ledModuleDiscount = {
 **Step-by-Step Builder:**
 
 **Step 1: Customer Selection**
+
 ```
 ┌────────────────────────────────────────┐
 │ New Quotation                    [X]   │
@@ -716,6 +761,7 @@ const ledModuleDiscount = {
 ```
 
 **Step 2: Add Items**
+
 ```
 ┌──────────────────────────────────────────────────┐
 │ 📦 Items                          [+ Add Item]   │
@@ -735,6 +781,7 @@ const ledModuleDiscount = {
 ```
 
 **Step 3: Pricing Summary**
+
 ```
 ┌──────────────────────────────────────┐
 │ 💰 Pricing Summary                   │
@@ -756,6 +803,7 @@ const ledModuleDiscount = {
 ```
 
 **Step 4: Terms & Validity**
+
 ```
 ┌─────────────────────────────────────────┐
 │ 📋 Quotation Details                    │
@@ -786,6 +834,7 @@ const ledModuleDiscount = {
 #### 3.1.4 Quotation Templates
 
 **Pre-saved Templates:**
+
 ```typescript
 interface QuotationTemplate {
   id: string;
@@ -807,11 +856,13 @@ interface QuotationTemplate {
 ```
 
 **Example Templates:**
+
 - "ป้าย LED ขนาดมาตรฐาน" (Standard LED Sign)
 - "ชุดป้ายหน้าร้าน" (Store Front Package)
 - "งานด่วน 3 วัน" (Rush Job 3 Days)
 
 **Quick Actions:**
+
 - Use template as starting point
 - Modify items/pricing
 - Save new version as template
@@ -820,6 +871,7 @@ interface QuotationTemplate {
 ### 3.2 Feature: Quotation Approval Workflow
 
 **User Story:**
+
 - AS a sales manager
 - I WANT to approve quotations with large discounts
 - SO THAT I can control pricing and profitability
@@ -870,6 +922,7 @@ const approvalRules = [
 #### 3.2.2 Approval UI
 
 **Pending Approvals Dashboard:**
+
 ```
 ┌──────────────────────────────────────────────────────┐
 │ ⏳ Pending Approvals (3)             [My Queue][All] │
@@ -889,12 +942,14 @@ const approvalRules = [
 ```
 
 **Approval Actions:**
+
 - ✅ Approve: Move quotation to "Approved" status
 - ❌ Reject: Return to sales with reason
 - 💬 Request Changes: Ask for modifications
 - 👁️ View Details: Full quotation view
 
 **Notification Flow:**
+
 1. Sales creates quotation → Triggers approval rule
 2. System notifies approvers via:
    - In-app notification
@@ -908,6 +963,7 @@ const approvalRules = [
 ### 3.3 Feature: Quotation Comparison
 
 **User Story:**
+
 - AS a sales person
 - I WANT to compare multiple quotation versions
 - SO THAT I can show options to customers
@@ -930,6 +986,7 @@ interface QuotationComparison {
 ```
 
 **Comparison Table UI:**
+
 ```
 ┌────────────────────────────────────────────────────────────┐
 │ Compare Quotations                        [Export PDF]     │
@@ -950,6 +1007,7 @@ interface QuotationComparison {
 ### 3.4 Feature: PDF Export - Quotation
 
 **User Story:**
+
 - AS a sales person
 - I WANT to export quotation as professional PDF
 - SO THAT I can send it to customers
@@ -961,6 +1019,7 @@ interface QuotationComparison {
 **Thai Business Standard Format:**
 
 **Header Section:**
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ [Company Logo]              ใบเสนอราคา / QUOTATION      │
@@ -974,6 +1033,7 @@ interface QuotationComparison {
 ```
 
 **Customer Section:**
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ เรียน: คุณสมชาย ใจดี                                     │
@@ -986,6 +1046,7 @@ interface QuotationComparison {
 ```
 
 **Items Table:**
+
 ```
 ┌────┬────────────────────┬────────┬────────┬─────────────┐
 │ #  │ รายการ             │ จำนวน │ ราคา/หน่วย│ รวม       │
@@ -1005,6 +1066,7 @@ interface QuotationComparison {
 ```
 
 **Summary Section:**
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                                  ยอดรวม:    45,000.00 ฿ │
@@ -1021,6 +1083,7 @@ interface QuotationComparison {
 ```
 
 **Terms & Conditions:**
+
 ```
 เงื่อนไขการชำระเงิน:
 - มัดจำ 50% ก่อนเริ่มงาน
@@ -1038,6 +1101,7 @@ interface QuotationComparison {
 ```
 
 **Footer:**
+
 ```
 ────────────────────────────────────────────────────────
 หากมีข้อสงสัย กรุณาติดต่อ: sales@company.com | 02-xxx-xxxx
@@ -1049,6 +1113,7 @@ www.company.com | LINE: @companyofficial
 **Implementation Options:**
 
 **Option A: Puppeteer (Server-side)**
+
 ```typescript
 // API Route: /api/pdf/quotation/[id]
 import puppeteer from 'puppeteer';
@@ -1104,6 +1169,7 @@ export async function GET(request: Request) {
 ```
 
 **Option B: React-PDF (Client-side)**
+
 ```typescript
 import { PDFDownloadLink, Document, Page, Text, View } from '@react-pdf/renderer';
 
@@ -1129,6 +1195,7 @@ const QuotationPDF = ({ quotation }) => (
 ```
 
 **Recommended: Puppeteer**
+
 - ✅ Better Thai font support
 - ✅ Complex layouts easier
 - ✅ CSS styling familiar
@@ -1137,6 +1204,7 @@ const QuotationPDF = ({ quotation }) => (
 - ❌ Slower than client-side
 
 **Font Configuration:**
+
 ```typescript
 // Support Thai fonts
 const html = `
@@ -1175,6 +1243,7 @@ const html = `
 #### 3.4.3 Watermark & Branding
 
 **Optional Features:**
+
 - Company watermark (semi-transparent)
 - "DRAFT" stamp if not approved
 - "EXPIRED" stamp if past validity date
@@ -1184,6 +1253,7 @@ const html = `
 #### 3.4.4 Multi-language Support
 
 **Bilingual PDF (Thai/English):**
+
 ```typescript
 interface LocalizedText {
   th: string;
@@ -1208,6 +1278,7 @@ const labels = {
 ### 4.1 Feature: Advanced Kanban Board
 
 **User Story:**
+
 - AS a production manager
 - I WANT to see all jobs and their status at a glance
 - SO THAT I can manage workflow efficiently
@@ -1217,6 +1288,7 @@ const labels = {
 #### 4.1.1 Kanban Columns
 
 **Default Workflow:**
+
 ```typescript
 const defaultColumns = [
   { id: 'new', name: 'รอดำเนินการ', color: '#gray' },
@@ -1229,6 +1301,7 @@ const defaultColumns = [
 ```
 
 **Customizable Columns:**
+
 - Add/remove/reorder columns
 - Rename columns
 - Set column limits (WIP limits)
@@ -1237,6 +1310,7 @@ const defaultColumns = [
 #### 4.1.2 Job Card Design
 
 **Card Layout:**
+
 ```
 ┌──────────────────────────────────────────────────┐
 │ OR-202503-0042                    [⋮]            │
@@ -1252,6 +1326,7 @@ const defaultColumns = [
 ```
 
 **Card Information:**
+
 - Order number
 - Product/service name
 - Customer name
@@ -1262,6 +1337,7 @@ const defaultColumns = [
 - Progress bar (optional)
 
 **Color Coding:**
+
 - 🟢 Green border: On schedule
 - 🟡 Yellow border: Approaching deadline (< 3 days)
 - 🔴 Red border: Overdue
@@ -1271,6 +1347,7 @@ const defaultColumns = [
 #### 4.1.3 Drag & Drop Functionality
 
 **Desktop Interaction:**
+
 ```typescript
 // Using dnd-kit or react-beautiful-dnd
 <DndContext onDragEnd={handleDragEnd}>
@@ -1308,6 +1385,7 @@ function handleDragEnd(event) {
 ```
 
 **Mobile Interaction:**
+
 - Long press to grab card
 - Drag to column header
 - Or use button-based status change:
@@ -1327,6 +1405,7 @@ function handleDragEnd(event) {
 #### 4.1.4 Filters & Search
 
 **Filter Panel:**
+
 ```
 ┌────────────────────────────────────────┐
 │ 🔍 Search: [                    ]     │
@@ -1358,6 +1437,7 @@ function handleDragEnd(event) {
 ```
 
 **Saved Views:**
+
 - "My Jobs" - Jobs assigned to me
 - "Overdue" - Past deadline
 - "This Week" - Deadline this week
@@ -1367,6 +1447,7 @@ function handleDragEnd(event) {
 ### 4.2 Feature: Design File Management
 
 **User Story:**
+
 - AS a production worker
 - I WANT to access design files for my jobs
 - SO THAT I can produce accurate products
@@ -1376,6 +1457,7 @@ function handleDragEnd(event) {
 #### 4.2.1 File Upload System
 
 **Upload Interface:**
+
 ```typescript
 interface DesignFileUpload {
   orderId: string;
@@ -1399,6 +1481,7 @@ interface DesignFileUpload {
 ```
 
 **Accepted File Types:**
+
 - Images: .jpg, .png, .gif, .svg
 - Design files: .ai, .psd, .pdf, .eps, .cdr
 - Documents: .pdf, .doc, .docx
@@ -1407,6 +1490,7 @@ interface DesignFileUpload {
 - Max files: 20 per order
 
 **Upload UI Component:**
+
 ```tsx
 <FileUploadZone
   orderId={order.id}
@@ -1433,6 +1517,7 @@ interface DesignFileUpload {
 ```
 
 **Progress Indicator:**
+
 ```
 ┌────────────────────────────────────────┐
 │ Uploading Files...                     │
@@ -1448,6 +1533,7 @@ interface DesignFileUpload {
 #### 4.2.2 File List & Preview
 
 **File Manager Interface:**
+
 ```
 ┌──────────────────────────────────────────────────────┐
 │ 📎 Design Files (5)                   [+ Upload]     │
@@ -1467,11 +1553,13 @@ interface DesignFileUpload {
 ```
 
 **Preview Modal:**
+
 - Images: Full-size preview with zoom
 - PDFs: Embedded PDF viewer
 - Other files: Show file info + download button
 
 **File Versioning:**
+
 - Keep history of all uploaded versions
 - Show version number (v1, v2, v3)
 - Compare versions side-by-side
@@ -1480,6 +1568,7 @@ interface DesignFileUpload {
 #### 4.2.3 Supabase Storage Integration
 
 **Storage Configuration:**
+
 ```typescript
 // Storage bucket setup
 const BUCKET_NAME = 'design-files';
@@ -1550,6 +1639,7 @@ async function deleteDesignFile(id: string) {
 ```
 
 **Security Rules:**
+
 - RLS policies: Users can only access files for their organization
 - Authenticated uploads only
 - File type validation
@@ -1558,6 +1648,7 @@ async function deleteDesignFile(id: string) {
 ### 4.3 Feature: Production Progress Tracking
 
 **User Story:**
+
 - AS a production worker
 - I WANT to update job progress with photos
 - SO THAT managers can track status
@@ -1567,6 +1658,7 @@ async function deleteDesignFile(id: string) {
 #### 4.3.1 Progress Updates
 
 **Update Form:**
+
 ```
 ┌────────────────────────────────────────┐
 │ Update Progress: OR-202503-0042        │
@@ -1597,6 +1689,7 @@ async function deleteDesignFile(id: string) {
 ```
 
 **Photo Upload:**
+
 - Take photo directly (mobile)
 - Upload from gallery
 - Multiple photos per update
@@ -1606,6 +1699,7 @@ async function deleteDesignFile(id: string) {
 #### 4.3.2 Timeline View
 
 **Job History Timeline:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ 📋 Job Timeline: OR-202503-0042                        │
@@ -1634,6 +1728,7 @@ async function deleteDesignFile(id: string) {
 ```
 
 **Timeline Events:**
+
 - Job creation
 - Status changes
 - Assignments
@@ -1648,6 +1743,7 @@ async function deleteDesignFile(id: string) {
 #### 4.3.3 Photo Gallery
 
 **Gallery View:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ 📸 Progress Photos (12)                      [Upload]  │
@@ -1666,6 +1762,7 @@ async function deleteDesignFile(id: string) {
 ```
 
 **Photo Actions:**
+
 - Click to view full-size
 - Swipe gallery
 - Download photo
@@ -1676,6 +1773,7 @@ async function deleteDesignFile(id: string) {
 ### 4.4 Feature: Quality Control & Approval
 
 **User Story:**
+
 - AS a production manager
 - I WANT to review completed work before delivery
 - SO THAT we maintain quality standards
@@ -1685,6 +1783,7 @@ async function deleteDesignFile(id: string) {
 #### 4.4.1 Submit for Review
 
 **Worker Action:**
+
 ```
 ┌────────────────────────────────────────┐
 │ OR-202503-0042                         │
@@ -1713,6 +1812,7 @@ async function deleteDesignFile(id: string) {
 ```
 
 **Validation Rules:**
+
 - Minimum 3 photos required
 - Progress must be 100%
 - Completion notes required
@@ -1721,6 +1821,7 @@ async function deleteDesignFile(id: string) {
 #### 4.4.2 Review Dashboard
 
 **Manager View:**
+
 ```
 ┌──────────────────────────────────────────────────────┐
 │ 🔍 Pending Reviews (4)                    [Settings] │
@@ -1739,6 +1840,7 @@ async function deleteDesignFile(id: string) {
 #### 4.4.3 Review Interface
 
 **Detailed Review Screen:**
+
 ```
 ┌──────────────────────────────────────────────────────┐
 │ Quality Review: OR-202503-0042         [← Back]      │
@@ -1780,22 +1882,26 @@ async function deleteDesignFile(id: string) {
 **Review Actions:**
 
 **Approve:**
+
 - Move job to "Installing" or "Completed"
 - Notify customer (optional)
 - Notify installation team (if applicable)
 
 **Approve with Notes:**
+
 - Move to next stage
 - Add notes for installation team
 - Track minor issues
 
 **Reject:**
+
 - Return to "In Progress"
 - Add detailed rejection reasons
 - Notify worker
 - Create rework task
 
 **Rejection Form:**
+
 ```
 ┌────────────────────────────────────────┐
 │ ❌ Reject for Rework                   │
@@ -1832,6 +1938,7 @@ async function deleteDesignFile(id: string) {
 ### 5.1 Feature: Invoice Generation
 
 **User Story:**
+
 - AS an accountant
 - I WANT to generate invoices from completed orders
 - SO THAT I can bill customers accurately
@@ -1841,6 +1948,7 @@ async function deleteDesignFile(id: string) {
 #### 5.1.1 Invoice Creation
 
 **Auto-Generate from Order:**
+
 ```typescript
 async function createInvoiceFromOrder(orderId: string) {
   const order = await prisma.order.findUnique({
@@ -1895,6 +2003,7 @@ async function createInvoiceFromOrder(orderId: string) {
 ```
 
 **Invoice Number Generation:**
+
 ```typescript
 function generateInvoiceNumber(type: 'INVOICE' | 'TAX_INVOICE'): string {
   const prefix = type === 'TAX_INVOICE' ? 'TX' : 'IV';
@@ -1909,6 +2018,7 @@ function generateInvoiceNumber(type: 'INVOICE' | 'TAX_INVOICE'): string {
 #### 5.1.2 Tax Invoice Support
 
 **Thai Tax Invoice Requirements:**
+
 - Official tax invoice number (separate from regular invoice)
 - Company tax ID (13 digits)
 - Customer tax ID (if applicable)
@@ -1916,6 +2026,7 @@ function generateInvoiceNumber(type: 'INVOICE' | 'TAX_INVOICE'): string {
 - Official format and wording
 
 **Tax Invoice Toggle:**
+
 ```
 ┌────────────────────────────────────────┐
 │ Create Invoice                         │
@@ -1930,6 +2041,7 @@ function generateInvoiceNumber(type: 'INVOICE' | 'TAX_INVOICE'): string {
 ```
 
 **Tax Invoice Generation:**
+
 ```typescript
 async function createTaxInvoice(invoiceId: string) {
   const invoice = await prisma.invoice.findUnique({
@@ -1961,6 +2073,7 @@ async function createTaxInvoice(invoiceId: string) {
 **Similar to Quotation PDF but with differences:**
 
 **Header:**
+
 ```
 ใบแจ้งหนี้ / INVOICE               [Or] ใบกำกับภาษี / TAX INVOICE
 เลขที่ (No.): IV-202503-0042               TX-202503-0042
@@ -1970,11 +2083,13 @@ async function createTaxInvoice(invoiceId: string) {
 ```
 
 **Payment Status Stamp:**
+
 - "UNPAID" (red) - ยังไม่ชำระ
 - "PARTIALLY PAID" (yellow) - ชำระบางส่วน
 - "PAID" (green stamp) - ชำระแล้ว
 
 **Payment Information Section:**
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ วิธีการชำระเงิน / PAYMENT METHOD                        │
@@ -1992,6 +2107,7 @@ async function createTaxInvoice(invoiceId: string) {
 ### 5.2 Feature: Payment Receipt
 
 **User Story:**
+
 - AS an accountant
 - I WANT to record payments and issue receipts
 - SO THAT I can track cash flow
@@ -2001,6 +2117,7 @@ async function createTaxInvoice(invoiceId: string) {
 #### 5.2.1 Payment Recording
 
 **Payment Form:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ Record Payment                                  [X]    │
@@ -2040,6 +2157,7 @@ async function createTaxInvoice(invoiceId: string) {
 ```
 
 **Partial Payment Support:**
+
 ```
 ┌────────────────────────────────────────┐
 │ Invoice: IV-202503-0042                │
@@ -2058,6 +2176,7 @@ async function createTaxInvoice(invoiceId: string) {
 #### 5.2.2 Auto-Status Updates
 
 **Workflow Automation:**
+
 ```typescript
 async function recordPayment(data: PaymentData) {
   const { invoiceId, amount, method, reference } = data;
@@ -2115,6 +2234,7 @@ async function recordPayment(data: PaymentData) {
 #### 5.2.3 Receipt PDF
 
 **Receipt Format:**
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                   ใบเสร็จรับเงิน                        │
@@ -2157,6 +2277,7 @@ async function recordPayment(data: PaymentData) {
 ### 5.3 Feature: Financial Reports
 
 **User Story:**
+
 - AS a business owner
 - I WANT to see financial reports
 - SO THAT I can make informed decisions
@@ -2166,6 +2287,7 @@ async function recordPayment(data: PaymentData) {
 #### 5.3.1 Revenue Dashboard
 
 **Dashboard Layout:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ 💰 Financial Overview                    [Export] [...]  │
@@ -2179,6 +2301,7 @@ async function recordPayment(data: PaymentData) {
 ```
 
 **Revenue Chart:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ 📈 Revenue Trend                              [Daily ▼] │
@@ -2195,6 +2318,7 @@ async function recordPayment(data: PaymentData) {
 ```
 
 **Top Customers:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ 🏆 Top Customers                              [View All] │
@@ -2208,6 +2332,7 @@ async function recordPayment(data: PaymentData) {
 ```
 
 **Top Products:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ 📦 Top Products                               [View All] │
@@ -2222,6 +2347,7 @@ async function recordPayment(data: PaymentData) {
 #### 5.3.2 Aging Report
 
 **Outstanding Receivables:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ 📅 Aging Report                          [Export Excel]  │
@@ -2245,6 +2371,7 @@ async function recordPayment(data: PaymentData) {
 ```
 
 **Follow-up Actions:**
+
 - Send reminder (email/LINE)
 - Schedule phone call
 - Flag for collection
@@ -2253,6 +2380,7 @@ async function recordPayment(data: PaymentData) {
 #### 5.3.3 Profit Analysis
 
 **Profit Breakdown:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ 💹 Profit Analysis - March 2025                          │
@@ -2270,6 +2398,7 @@ async function recordPayment(data: PaymentData) {
 ```
 
 **By Product Category:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ Product       │Revenue  │Cost     │Profit  │Margin      │
@@ -2288,6 +2417,7 @@ async function recordPayment(data: PaymentData) {
 ### 6.1 Feature: Material Management
 
 **User Story:**
+
 - AS a warehouse manager
 - I WANT to track material inventory
 - SO THAT I can prevent stockouts
@@ -2297,6 +2427,7 @@ async function recordPayment(data: PaymentData) {
 #### 6.1.1 Material Master Data
 
 **Material Form:**
+
 ```typescript
 interface Material {
   id: string;
@@ -2341,6 +2472,7 @@ interface Material {
 ```
 
 **Material Form UI:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ Add New Material                            [Save][X]  │
@@ -2385,6 +2517,7 @@ interface Material {
 #### 6.1.2 Material List
 
 **List View:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ 📦 Materials (45)              [+ Add] [Import] [Export] │
@@ -2406,6 +2539,7 @@ interface Material {
 ```
 
 **Status Indicators:**
+
 - 🟢 Green: Stock > min + 20%
 - 🟡 Yellow: Stock between min and min + 20%
 - 🔴 Red: Stock < min (reorder alert)
@@ -2413,6 +2547,7 @@ interface Material {
 #### 6.1.3 Stock Adjustment
 
 **Adjustment Form:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ Adjust Stock: LED Module P10                    [X]    │
@@ -2441,6 +2576,7 @@ interface Material {
 ```
 
 **Batch Operations:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ Batch Stock Adjustment                          [X]    │
@@ -2462,6 +2598,7 @@ interface Material {
 #### 6.1.4 Stock Transaction History
 
 **Transaction Log:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ Stock History: LED Module P10                            │
@@ -2478,6 +2615,7 @@ interface Material {
 ```
 
 **Filter Options:**
+
 - Date range
 - Transaction type
 - Reference (PO, Invoice, etc.)
@@ -2486,6 +2624,7 @@ interface Material {
 ### 6.2 Feature: Low Stock Alerts
 
 **User Story:**
+
 - AS a warehouse manager
 - I WANT to be notified when stock is low
 - SO THAT I can reorder before running out
@@ -2495,6 +2634,7 @@ interface Material {
 #### 6.2.1 Alert Configuration
 
 **Alert Settings:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ ⚙️ Low Stock Alert Settings                     [Save] │
@@ -2524,6 +2664,7 @@ interface Material {
 #### 6.2.2 Alert Display
 
 **In-App Notification:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ 🔔 Notifications (3)                            [Clear]│
@@ -2541,6 +2682,7 @@ interface Material {
 ```
 
 **Email Notification:**
+
 ```
 Subject: 🚨 Low Stock Alert - 2 materials need reordering
 
@@ -2569,6 +2711,7 @@ This is an automated message from CraftFlow ERP
 #### 6.2.3 Reorder Suggestions
 
 **Smart Reorder:**
+
 ```typescript
 function calculateReorderQuantity(material: Material): number {
   const { inStock, minStock, maxStock, leadTimeDays } = material;
@@ -2591,6 +2734,7 @@ function calculateReorderQuantity(material: Material): number {
 ```
 
 **Reorder Suggestion UI:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ 📊 Reorder Suggestion: LED Module P10                  │
@@ -2619,6 +2763,7 @@ function calculateReorderQuantity(material: Material): number {
 ### 6.3 Feature: Auto Stock Deduction
 
 **User Story:**
+
 - AS an accountant
 - I WANT materials to be deducted automatically when invoiced
 - SO THAT stock levels are always accurate
@@ -2628,6 +2773,7 @@ function calculateReorderQuantity(material: Material): number {
 #### 6.3.1 Deduction Rules
 
 **Configuration:**
+
 ```typescript
 interface StockDeductionRule {
   trigger: 'on_invoice' | 'on_order' | 'on_completion' | 'manual';
@@ -2648,6 +2794,7 @@ const defaultRule: StockDeductionRule = {
 #### 6.3.2 Deduction Logic
 
 **Auto-Deduct on Invoice:**
+
 ```typescript
 async function deductMaterialsFromStock(order: Order) {
   const items = await prisma.orderItem.findMany({
@@ -2716,6 +2863,7 @@ async function deductMaterialsFromStock(order: Order) {
 #### 6.3.3 Insufficient Stock Handling
 
 **Warning Dialog:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ ⚠️ Insufficient Stock                           [X]    │
@@ -2749,6 +2897,7 @@ async function deductMaterialsFromStock(order: Order) {
 ### 7.1 Feature: Organization Settings
 
 **User Story:**
+
 - AS an admin
 - I WANT to configure company information
 - SO THAT it appears on documents
@@ -2758,6 +2907,7 @@ async function deductMaterialsFromStock(order: Order) {
 #### 7.1.1 Company Profile
 
 **Settings Form:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ ⚙️ Organization Settings                        [Save] │
@@ -2818,6 +2968,7 @@ async function deductMaterialsFromStock(order: Order) {
 #### 7.1.2 Payment Account Management
 
 **Add Bank Account:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ Add Bank Account                                [X]    │
@@ -2849,6 +3000,7 @@ async function deductMaterialsFromStock(order: Order) {
 ### 7.2 Feature: User Management
 
 **User Story:**
+
 - AS an owner
 - I WANT to manage user accounts and permissions
 - SO THAT I can control who accesses what
@@ -2858,6 +3010,7 @@ async function deductMaterialsFromStock(order: Order) {
 #### 7.2.1 User List
 
 **User Management Dashboard:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ 👥 Users (8)                          [+ Invite User]    │
@@ -2889,6 +3042,7 @@ async function deductMaterialsFromStock(order: Order) {
 #### 7.2.2 Role-Based Access Control
 
 **Pre-defined Roles:**
+
 ```typescript
 interface Role {
   id: string;
@@ -2987,6 +3141,7 @@ const roles: Role[] = [
 ```
 
 **Permission Matrix:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ 🔐 Permission Matrix                                   │
@@ -3011,6 +3166,7 @@ Legend: ✓✓✓ = Full access  ✓✓ = Edit own  ✓ = Limited  👁️ = Vie
 #### 7.2.3 Invite User
 
 **Invitation Form:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ Invite New User                                 [X]    │
@@ -3042,6 +3198,7 @@ Legend: ✓✓✓ = Full access  ✓✓ = Edit own  ✓ = Limited  👁️ = Vie
 ```
 
 **Invitation Email:**
+
 ```
 Subject: You've been invited to CraftFlow
 
@@ -3071,6 +3228,7 @@ CraftFlow ERP
 #### 7.2.4 User Activity Log
 
 **Activity Tracking:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ Activity Log: พนักงานขาย A                    [Export]   │
@@ -3093,6 +3251,7 @@ CraftFlow ERP
 ### 7.3 Feature: Approval Workflows
 
 **User Story:**
+
 - AS an owner
 - I WANT to set up approval workflows
 - SO THAT I can control important decisions
@@ -3102,6 +3261,7 @@ CraftFlow ERP
 #### 7.3.1 Workflow Configuration
 
 **Approval Rules Setup:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ ⚙️ Approval Workflows                          [+ Add] │
@@ -3149,6 +3309,7 @@ CraftFlow ERP
 #### 7.3.2 Custom Approval Rules
 
 **Advanced Rule Builder:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ Create Approval Rule                            [X]    │
@@ -3189,17 +3350,20 @@ CraftFlow ERP
 ### 7.4 Feature: Custom Authentication System
 
 **Problem to Solve:**
+
 - Supabase Auth creates platform lock-in for user management and session handling.
 - Migrating to another hosting stack becomes harder when user credentials and login flows are owned by a vendor service.
 - The business needs direct control over password resets, session revocation, 2FA policy, and device-level access.
 
 **CraftFlow Solution:**
+
 - Replace vendor-managed auth with a custom JWT-based authentication layer.
 - Store password hashes with bcrypt in the application database.
 - Track refresh tokens and active sessions per device so admins can revoke access when needed.
 - Keep the auth model portable across Vercel, AWS, self-hosted deployments, or future backend changes.
 
 **Expected User Stories:**
+
 - AS a staff user, I WANT to sign in with email and password SO THAT I can access the system securely.
 - AS a staff user, I WANT to reset my password and verify my email SO THAT I can recover my account safely.
 - AS an admin, I WANT optional 2FA and device/session revocation SO THAT I can enforce stronger security.
@@ -3224,6 +3388,7 @@ interface LoginRequest {
 ```
 
 **Required Capabilities:**
+
 - Email/password login
 - Remember me for long-lived sessions
 - Access token refresh
@@ -3233,12 +3398,14 @@ interface LoginRequest {
 #### 7.4.2 Recovery, Verification, and Security Controls
 
 **Account Lifecycle:**
+
 - Password reset via time-limited token
 - Email verification before full activation
 - Optional two-factor authentication
 - Audit logging for login, logout, password reset, and failed access attempts
 
 **Migration Notes:**
+
 - Existing Supabase-authenticated users must be migratable into the new `users` table.
 - Session storage moves to the new `sessions` table for device tracking and revocation.
 - The application must treat auth as an app-owned concern while continuing to use Supabase for PostgreSQL and Storage.
@@ -3248,6 +3415,7 @@ interface LoginRequest {
 ### 8.1 Feature: Real-time Collaboration
 
 **User Story:**
+
 - AS a team member
 - I WANT to see what others are working on
 - SO THAT we can coordinate better
@@ -3257,6 +3425,7 @@ interface LoginRequest {
 #### 8.1.1 Presence Indicators
 
 **Show who's viewing/editing:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ Quotation: QT-202503-0042                              │
@@ -3268,6 +3437,7 @@ interface LoginRequest {
 ```
 
 **Active Users List:**
+
 ```
 ┌────────────────────────────────────────┐
 │ 👥 Active Now (4)                      │
@@ -3289,6 +3459,7 @@ interface LoginRequest {
 #### 8.1.2 Internal Comments
 
 **Comment System:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ 💬 Comments (3)                         [Add Comment]  │
@@ -3310,6 +3481,7 @@ interface LoginRequest {
 ```
 
 **@Mentions:**
+
 - Tag users with @username
 - Get notified when mentioned
 - See all mentions in notification center
@@ -3317,11 +3489,13 @@ interface LoginRequest {
 ### 8.2 Feature: Universal File Attachment System
 
 **Problem to Solve:**
+
 - FlowAccount does not provide a flexible attachment model across every business document.
 - Sales teams cannot easily attach portfolio samples, mockups, or inspiration references to help customers decide.
 - Production and finance teams lose context when files are split across email threads or chat apps.
 
 **CraftFlow Solution:**
+
 - Support one attachment system across quotations, orders, invoices, receipts, customers, and future modules.
 - Use polymorphic `attachableType` + `attachableId` links so each record can own many files.
 - Preserve title, description, category, tags, file size, preview thumbnail, and version history.
@@ -3352,6 +3526,7 @@ interface AttachmentRecord {
 ```
 
 **Behavior Requirements:**
+
 - Multiple files per record
 - Version replacement for updated artwork or revised files
 - Category-based filtering in UI
@@ -3368,11 +3543,13 @@ interface AttachmentRecord {
 ### 8.3 Feature: Location Management & Google Maps
 
 **Problem to Solve:**
+
 - Customer service and installation teams repeatedly ask for the same location details.
 - Rider, logistics, and installation coordination breaks down when addresses are incomplete or not map-ready.
 - Full Google Maps API usage can create unnecessary monthly cost for a workflow that mostly needs shareable map links.
 
 **CraftFlow Solution:**
+
 - Store structured addresses plus latitude/longitude for each customer location.
 - Generate Google Maps URLs without requiring paid routing/geocoding API usage.
 - Support embedded map previews, site photos, access notes, parking instructions, and onsite contacts.
@@ -3414,6 +3591,7 @@ interface CustomerLocationRecord {
 ### 8.4 Feature: Customer Portal (Future)
 
 **User Story:**
+
 - AS a customer
 - I WANT to check my order status online
 - SO THAT I don't need to call the office
@@ -3423,11 +3601,13 @@ interface CustomerLocationRecord {
 #### 8.4.1 Customer Login
 
 **Simple Authentication:**
+
 - Login with phone number + OTP
 - Or link LINE account
 - No password needed
 
 **Customer Dashboard:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ 👋 สวัสดี คุณสมชาย                         [Logout]    │
@@ -3456,6 +3636,7 @@ interface CustomerLocationRecord {
 #### 8.4.2 Order Tracking
 
 **Live Status Updates:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ Order Details: OR-202503-0042                          │
@@ -3483,11 +3664,13 @@ interface CustomerLocationRecord {
 ### 8.5 Feature: WhatsApp Integration
 
 **User Story:**
+
 - AS a customer
 - I WANT to contact via WhatsApp
 - SO THAT I can use my preferred messaging app
 
 **Similar to LINE integration but for WhatsApp:**
+
 - WhatsApp Business API
 - Auto-responses
 - Unified inbox
@@ -3496,6 +3679,7 @@ interface CustomerLocationRecord {
 ### 8.6 Feature: Analytics Dashboard
 
 **User Story:**
+
 - AS a business owner
 - I WANT to see business metrics
 - SO THAT I can make data-driven decisions
@@ -3546,6 +3730,7 @@ interface CustomerLocationRecord {
 ### 8.7 Feature: Mobile App (Future Phase)
 
 **iOS/Android Native Apps:**
+
 - Push notifications
 - Offline mode for field workers
 - Camera integration for photos
@@ -3555,6 +3740,7 @@ interface CustomerLocationRecord {
 ### 8.8 Feature: API & Integrations
 
 **Public API for third-party integrations:**
+
 - RESTful API
 - Webhook support
 - OAuth 2.0 authentication
@@ -3562,6 +3748,7 @@ interface CustomerLocationRecord {
 - API documentation
 
 **Pre-built Integrations:**
+
 - Accounting software (QuickBooks, Xero)
 - Payment gateways (2C2P, Omise, PromptPay)
 - Shipping providers
@@ -3576,6 +3763,7 @@ interface CustomerLocationRecord {
 ### 9.1 LINE Official Account
 
 **Setup Requirements:**
+
 - LINE Official Account (verified)
 - Messaging API enabled
 - Webhook URL configured
@@ -3583,6 +3771,7 @@ interface CustomerLocationRecord {
 - Channel Secret
 
 **Webhook Events:**
+
 - Message received
 - User follow/unfollow
 - Postback (button clicks)
@@ -3590,6 +3779,7 @@ interface CustomerLocationRecord {
 ### 9.2 Facebook Messenger
 
 **Setup Requirements:**
+
 - Facebook Page
 - Facebook App
 - Messenger permission
@@ -3599,6 +3789,7 @@ interface CustomerLocationRecord {
 ### 9.3 Email Service
 
 **Transactional Emails:**
+
 - Welcome emails
 - Quotation sent
 - Invoice/Receipt sent
@@ -3607,6 +3798,7 @@ interface CustomerLocationRecord {
 - Invitation emails
 
 **Email Provider Options:**
+
 - SendGrid
 - AWS SES
 - Mailgun
@@ -3615,12 +3807,14 @@ interface CustomerLocationRecord {
 ### 9.4 SMS Notifications (Optional)
 
 **Use Cases:**
+
 - OTP for customer login
 - Order status updates
 - Payment reminders
 - Appointment reminders
 
 **SMS Providers (Thailand):**
+
 - ThaiSMS
 - SMSClub
 - Thaibulksms
@@ -3628,12 +3822,14 @@ interface CustomerLocationRecord {
 ### 9.5 Payment Gateways
 
 **Supported Methods:**
+
 - Bank Transfer (manual)
 - PromptPay QR
 - Credit/Debit Card (via gateway)
 - Installment plans (via gateway)
 
 **Gateway Providers:**
+
 - 2C2P
 - Omise
 - GB Prime Pay
@@ -3946,6 +4142,7 @@ Organization
 ```
 
 **Relationship Notes:**
+
 - `Attachment` is polymorphic and must be queryable by `attachableType` + `attachableId` across quotations, orders, invoices, receipts, customers, and future modules.
 - `CustomerLocation` belongs to one customer, and each order may optionally point to a selected service or installation location.
 - `User` and `Session` replace Supabase Auth as the source of truth for identity, active sessions, refresh tokens, and token revocation.
@@ -3983,6 +4180,7 @@ import { useTranslations, useFormatter } from 'next-intl';
 ```
 
 **Decision rationale:**
+
 - `next-intl` supports Next.js App Router (RSC + Client Components)
 - Built-in number, date, and currency formatting per locale
 - Type-safe translation keys via TypeScript codegen
@@ -4147,6 +4345,7 @@ t('notifications.orderCreated', { orderNumber: 'OR-202503-0042' })
 **Location:** Top navigation bar (right side, near user profile)
 
 **Behavior:**
+
 - Dropdown showing flag + language name
 - Instant switch without full page reload (next-intl router)
 - Preference saved to user profile in database
@@ -4161,6 +4360,7 @@ interface UserLocalePreference {
 ```
 
 **UI:**
+
 ```
 ┌─────────────────────┐
 │ 🇹🇭 ไทย          ✓  │
@@ -4234,6 +4434,7 @@ formatter.dateTime(new Date(), {
 ```
 
 **Buddhist Era (BE) calendar:**
+
 - Thai locale may optionally display BE year (พ.ศ.) alongside CE year
 - Controlled by a per-organization setting: `dateCalendar: 'BE' | 'CE'`
 - Default: CE for all locales (simpler for multi-locale consistency)
@@ -4443,9 +4644,11 @@ i18n implementation is split across phases to avoid blocking core operations:
 ## 📋 Implementation Priorities
 
 ### Phase 1: Core MVP (Weeks 1-2)
+
 **Goal:** System can replace current operations
 
 Critical path:
+
 1. ✅ PDF Export (3 templates)
 2. ✅ Design File Upload
 3. ✅ Customer Detail Page
@@ -4460,6 +4663,7 @@ Critical path:
 **Acceptance:** Can operate business 100% on new system
 
 ### Phase 2: Team Efficiency (Weeks 3-4)
+
 **Goal:** Reduce manual work and errors
 
 1. LINE Notification Automation
@@ -4472,6 +4676,7 @@ Critical path:
 **Acceptance:** 30% less manual work, fewer errors
 
 ### Phase 3: Customer Experience (Weeks 5-6)
+
 **Goal:** Better customer service
 
 1. Customer Portal
@@ -4483,6 +4688,7 @@ Critical path:
 **Acceptance:** Customers can self-serve, faster response times
 
 ### Phase 4: Business Intelligence (Weeks 7-8)
+
 **Goal:** Data-driven decisions
 
 1. Advanced Analytics
@@ -4496,20 +4702,23 @@ Critical path:
 
 ## 🎯 Success Metrics
 
-### Operational Metrics:
+### Operational Metrics
+
 - Time to create quotation: < 5 minutes
 - Order processing time: < 10 minutes
 - Average response time to customers: < 30 minutes
 - Stock accuracy: > 95%
 - On-time delivery: > 90%
 
-### Financial Metrics:
+### Financial Metrics
+
 - Invoice accuracy: 100%
 - Days sales outstanding (DSO): < 45 days
 - Inventory turnover: > 6x per year
 - Profit margin visibility: Real-time
 
-### User Adoption:
+### User Adoption
+
 - Daily active users: 80% of team
 - Mobile usage: > 50% for field workers
 - Customer portal adoption: > 30% of customers
@@ -4518,20 +4727,23 @@ Critical path:
 
 ## 🔒 Security & Compliance
 
-### Data Security:
+### Data Security
+
 - HTTPS only
 - Encrypted passwords (bcrypt)
 - Row-level security (RLS)
 - Regular backups
 - Audit logs
 
-### Privacy:
+### Privacy
+
 - PDPA compliance (Thailand)
 - Customer data protection
 - Right to deletion
 - Data export
 
-### Business Continuity:
+### Business Continuity
+
 - Daily automated backups
 - Disaster recovery plan
 - Uptime SLA: 99.9%
@@ -4541,6 +4753,7 @@ Critical path:
 ## 📱 Technical Stack Summary
 
 **Frontend:**
+
 - Next.js 14+ (App Router)
 - React 18+
 - TypeScript
@@ -4548,18 +4761,21 @@ Critical path:
 - shadcn/ui components
 
 **Backend:**
+
 - Supabase (PostgreSQL + Storage)
 - Prisma ORM
 - Custom JWT Authentication (bcrypt + sessions)
 - Next.js API Routes / Server Actions
 
 **Integrations:**
+
 - LINE Messaging API
 - Facebook Graph API
 - Email (SendGrid/AWS SES)
 - Payment Gateways (2C2P/Omise)
 
 **DevOps:**
+
 - Vercel hosting
 - GitHub Actions CI/CD
 - Monitoring (Sentry)
@@ -4572,6 +4788,7 @@ Critical path:
 This specification is designed to be consumed by AI coding agents (like Windsurf with Claude Sonnet 4.5) to implement features autonomously.
 
 **For each feature, the agent should:**
+
 1. Read this specification thoroughly
 2. Understand the database schema
 3. Check existing code structure
@@ -4581,12 +4798,14 @@ This specification is designed to be consumed by AI coding agents (like Windsurf
 7. Request code review if uncertain
 
 **Priority order for implementation:**
+
 1. Start with Phase 1 features (blocking items)
 2. Follow the dependency graph
 3. Test each feature before moving to next
 4. Deploy incrementally
 
 **Quality checklist:**
+
 - [ ] Code follows TypeScript best practices
 - [ ] Proper error handling
 - [ ] Loading states for async operations
