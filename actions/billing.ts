@@ -50,15 +50,15 @@ export async function getRecentDocuments() {
     ])
 
     const allDocs = [
-        ...(quotations.data || []).map((q: any) => ({ ...q, docType: 'Quote', docNumber: q.quotationNumber })),
-        ...(invoices.data || []).map((i: any) => ({ ...i, docType: 'Invoice', docNumber: i.invoiceNumber })),
-        ...(receipts.data || []).map((r: any) => ({ ...r, docType: 'Receipt', docNumber: r.receiptNumber }))
+        ...(quotations.data || []).map((q: unknown) => ({ ...q, docType: 'Quote', docNumber: q.quotationNumber })),
+        ...(invoices.data || []).map((i: unknown) => ({ ...i, docType: 'Invoice', docNumber: i.invoiceNumber })),
+        ...(receipts.data || []).map((r: unknown) => ({ ...r, docType: 'Receipt', docNumber: r.receiptNumber }))
     ]
 
     // Sort by createdAt desc
     allDocs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
-    return allDocs.slice(0, 15).map((d: any) => {
+    return allDocs.slice(0, 15).map((d: unknown) => {
         let status: 'draft' | 'sent' | 'paid' | 'overdue' = 'draft'
 
         if (d.docType === 'Quote') {

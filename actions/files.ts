@@ -33,7 +33,7 @@ export async function getJobFolders(): Promise<JobFolder[]> {
         return []
     }
 
-    return orders.map((order: any) => {
+    return orders.map((order: unknown) => {
         const jobTitle = order.OrderItem?.[0]?.name || 'งานทั่วไป'
         const customerName = order.Customer?.name || 'ลูกค้าทั่วไป'
 

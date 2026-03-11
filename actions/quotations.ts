@@ -377,7 +377,7 @@ export async function createQuotationAndJob(
             priority: jobOptions.priority,
             notes: jobNotes,
             quotationid: quotation.id,
-        } as any,
+        } as unknown as unknown as Record<string, unknown>,
         items.map(item => ({
             name: item.name || 'Untitled Item',
             width: Number(item.width) || 0,

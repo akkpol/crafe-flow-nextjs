@@ -48,7 +48,7 @@ export async function getRecentJobs() {
         return []
     }
 
-    return data.map((job: any) => ({
+    return data.map((job: unknown) => ({
         id: job.id,
         title: job.orderNumber + (job.notes ? ` - ${job.notes}` : ''), // Use orderNumber as title for now as we don't have job title
         customer: job.Customer?.name || 'ลูกค้าทั่วไป',

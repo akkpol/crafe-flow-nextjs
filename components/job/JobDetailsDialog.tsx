@@ -10,23 +10,32 @@ import { useEffect, useState } from 'react'
 import { getOrderHistory } from '@/actions/history'
 
 interface JobDetailsDialogProps {
-    job: any
+    job: unknown
     open: boolean
     onOpenChange: (open: boolean) => void
 }
 
 export function JobDetailsDialog({ job, open, onOpenChange }: JobDetailsDialogProps) {
-    const [history, setHistory] = useState<any[]>([])
+    const [history, setHistory] = useState<unknown[]>([])
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
+        let isMounted = true;
         if (open && job?.id) {
-            setLoading(true)
-            getOrderHistory(job.id)
-                .then(data => setHistory(data))
-                .catch(err => console.error(err))
-                .finally(() => setLoading(false))
+            const fetchHistory = async () => {
+                setLoading(true);
+                try {
+                    const data = await getOrderHistory(job.id);
+                    if (isMounted) setHistory(data);
+                } catch (err) {
+                    console.error(err);
+                } finally {
+                    if (isMounted) setLoading(false);
+                }
+            };
+            fetchHistory();
         }
+        return () => { isMounted = false; };
     }, [open, job?.id])
 
     if (!job) return null
@@ -117,7 +126,7 @@ export function JobDetailsDialog({ job, open, onOpenChange }: JobDetailsDialogPr
     )
 }
 
-function formatAction(record: any) {
+function formatAction(record: unknown) {
     switch (record.action) {
         case 'STATUS_CHANGE':
             const details = JSON.parse(record.details || '{}')

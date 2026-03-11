@@ -28,7 +28,7 @@ export interface DocumentData {
     vat: number;
     grandTotal: number;
     notes?: string;
-    paymentInfo?: any;
+    paymentInfo?: Record<string, unknown>;
     status?: string;
 }
 
