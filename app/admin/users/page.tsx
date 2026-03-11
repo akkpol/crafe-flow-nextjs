@@ -45,7 +45,7 @@ export default async function AdminUsersPage() {
         .eq('id', user.id)
         .single()
 
-    // @ts-ignore
+    // @ts-expect-error type override
     if (myProfile?.roles?.name !== 'admin') {
         return (
             <div className="flex min-h-[60vh] items-center justify-center p-8">
@@ -74,7 +74,7 @@ export default async function AdminUsersPage() {
 
     // Stats
     const roleCounts = profiles?.reduce((acc, p) => {
-        const role = (p.roles as any)?.name || 'pending'
+        const role = (p.roles as unknown as { name?: string, permissions?: string[] })?.name || 'pending'
         acc[role] = (acc[role] || 0) + 1
         return acc
     }, {} as Record<string, number>) ?? {}
@@ -149,7 +149,7 @@ export default async function AdminUsersPage() {
                 <CardContent>
                     <div className="space-y-3">
                         {profiles?.map((profile) => {
-                            const roleName = (profile.roles as any)?.name as keyof typeof ROLE_CONFIG | undefined
+                            const roleName = (profile.roles as unknown as { name?: string, permissions?: string[] })?.name as keyof typeof ROLE_CONFIG | undefined
                             const roleConf = roleName ? ROLE_CONFIG[roleName] : null
                             const Icon = roleConf?.icon ?? Clock
 

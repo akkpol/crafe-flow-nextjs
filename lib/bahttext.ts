@@ -10,7 +10,7 @@ export function bahttext(num: number): string {
     const numStr = num.toFixed(2)
     const [bahtPart, satangPart] = numStr.split('.')
 
-    let result = ''
+    const result = ''
 
     // Process Baht
     const nBaht = parseInt(bahtPart)
@@ -33,8 +33,8 @@ function convert(numberStr: string): string {
     const txtNum = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า']
     const txtUnit = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน']
 
-    let len = numberStr.length
-    let result = ''
+    const len = numberStr.length
+    const result = ''
 
     for (let i = 0; i < len; i++) {
         const n = parseInt(numberStr.charAt(i))
@@ -61,16 +61,16 @@ function customConvert(number: number): string {
     const txtNum = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า']
     const txtUnit = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน']
 
-    let sNumber = number.toString()
-    let sLength = sNumber.length
-    let result = ''
+    const sNumber = number.toString()
+    const sLength = sNumber.length
+    const result = ''
 
     for (let i = 0; i < sLength; i++) {
-        let n = parseInt(sNumber.charAt(i))
+        const n = parseInt(sNumber.charAt(i))
         if (n !== 0) {
-            let pos = sLength - i - 1
-            let isLast = pos === 0
-            let isSecondLast = pos === 1
+            const pos = sLength - i - 1
+            const isLast = pos === 0
+            const isSecondLast = pos === 1
 
             if (isLast && n === 1 && sLength > 1) {
                 result += 'เอ็ด'
@@ -113,13 +113,13 @@ export function toThaiBaht(number: number): string {
     if (Number(integerPart) === 0 && Number(fractionalPart) === 0) return "ศูนย์บาทถ้วน"
 
     // Integer Part
-    let intNum = Number(integerPart)
+    const intNum = Number(integerPart)
     if (intNum > 0) {
         output += num2text(intNum) + "บาท"
     }
 
     // Fractional Part
-    let fracNum = Number(fractionalPart)
+    const fracNum = Number(fractionalPart)
     if (fracNum > 0) {
         output += num2text(fracNum) + "สตางค์"
     } else {
@@ -133,9 +133,9 @@ function num2text(num: number): string {
     const values = ["", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];
     const places = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน"];
 
-    let s = num.toString();
+    const s = num.toString();
     const len = s.length;
-    let r = "";
+    const r = "";
 
     for (let i = 0; i < len; i++) {
         const n = parseInt(s.charAt(i));
@@ -150,7 +150,7 @@ function num2text(num: number): string {
 
 // Final polished implementation
 function bahttext_impl(num: number): string {
-    let number = num
+    const number = num
     const txtNum = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า']
     const txtUnit = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน']
     let s0 = ''

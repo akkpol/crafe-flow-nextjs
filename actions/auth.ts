@@ -139,7 +139,7 @@ export async function updateRole(userId: string, roleName: string) {
         .eq('id', user.id)
         .single()
 
-    // @ts-ignore
+    // @ts-expect-error type override
     if (callerProfile?.roles?.name !== 'admin') {
         return { error: 'Permission denied: Admin only' }
     }
