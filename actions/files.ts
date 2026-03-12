@@ -1,7 +1,16 @@
 'use server'
 
 import { createClient } from '@/lib/supabase-server'
-import { DesignFile, Order } from '@/lib/types'
+
+type JobFolderOrder = {
+    createdAt: string
+    Customer?: { name: string | null } | null
+    DesignFile?: unknown[] | null
+    id: string
+    OrderItem?: Array<{ name: string | null }> | null
+    orderNumber: string
+    status: string
+}
 
 export interface JobFolder {
     id: string
@@ -33,7 +42,8 @@ export async function getJobFolders(): Promise<JobFolder[]> {
         return []
     }
 
-    return orders.map((order: any) => {
+    return (orders ?? []).map((rawOrder) => {
+        const order = rawOrder as unknown as JobFolderOrder
         const jobTitle = order.OrderItem?.[0]?.name || 'งานทั่วไป'
         const customerName = order.Customer?.name || 'ลูกค้าทั่วไป'
 

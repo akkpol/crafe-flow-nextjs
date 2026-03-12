@@ -140,6 +140,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/20;
   }
@@ -149,31 +150,42 @@
   .glass {
     @apply backdrop-blur-xl bg-background/80 border border-border/50;
   }
+
   .glass-card {
     @apply backdrop-blur-md bg-card/60 border border-border/40 shadow-premium;
   }
+
   .card-premium {
     @apply bg-card border border-border/50 shadow-premium hover:shadow-premium-hover transition-all duration-300 rounded-3xl;
   }
+
   .text-gradient-cmyk {
     background: linear-gradient(135deg, oklch(0.65 0.15 220), oklch(0.55 0.22 340), oklch(0.85 0.18 90));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
   .bg-gradient-premium {
     background: linear-gradient(135deg, var(--primary), oklch(0.55 0.22 340));
   }
+
   .touch-target {
     min-height: 48px;
     min-width: 48px;
   }
+
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 20px);
   }
 }
 
 @keyframes aurora {
-  from { background-position: 50% 50%, 50% 50%; }
-  to { background-position: 350% 50%, 50% 350%; }
+  from {
+    background-position: 50% 50%, 50% 50%;
+  }
+
+  to {
+    background-position: 350% 50%, 50% 350%;
+  }
 }

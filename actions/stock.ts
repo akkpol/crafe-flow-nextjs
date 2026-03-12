@@ -57,7 +57,7 @@ export async function updateStockLevel(id: string, newAmount: number, reason: st
         materialId: id,
         type: diff > 0 ? 'STOCK_IN' : 'STOCK_OUT',
         quantity: Math.abs(diff),
-        reason: reason,
+        notes: reason,
         createdAt: new Date().toISOString(),
     })
 
