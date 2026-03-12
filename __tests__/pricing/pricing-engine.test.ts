@@ -554,4 +554,119 @@ describe('Real-World Scenarios', () => {
         expect(result.grandTotal).toBe(0)
         expect(result.vatAmount).toBe(0)
     })
+
+    it('Scenario: ผสมรายการแบบ ตร.ม. และแบบชิ้น', () => {
+        const items: PricingLineItem[] = [
+            {
+                name: 'ป้ายไวนิล 2×3',
+                width: 2,
+                height: 3,
+                quantity: 1,
+                material: mockVinyl, // sell 250, cost 150, waste 1.15
+            },
+            {
+                name: 'LED Module',
+                width: null,
+                height: null,
+                quantity: 20,
+                material: mockPieceMaterial, // sell 350, cost 200, waste 1.0
+            }
+        ]
+
+        const result = calculateQuotation(items)
+
+        // Item 1: 6 sqm * 1.15 = 6.9 materialArea. 6.9 * 250 = 1725 subtotal. Cost 6.9 * 150 = 1035
+        // Item 2: 20 units * 1.0 = 20 materialArea. 20 * 350 = 7000 subtotal. Cost 20 * 200 = 4000
+        expect(result.itemsSubtotal).toBe(1725 + 7000)
+        expect(result.totalCost).toBe(1035 + 4000)
+        expect(result.totalProfit).toBe(8725 - 5035)
+    })
+
+    it('Scenario: ใช้ค่าบริการหลายรูปแบบพร้อมกัน', () => {
+        const items: PricingLineItem[] = [{
+            name: 'ป้ายไวนิล 2×3',
+            width: 2,
+            height: 3,
+            quantity: 1,
+            material: mockVinyl, // subtotal 1725, area 6
+        }]
+
+        const services: ServiceCharge[] = [
+            { name: 'Fixed Charge', type: 'fixed', amount: 1000 },
+            { name: 'Per SQM Charge', type: 'per_sqm', amount: 100 }, // 100 * 6 = 600
+            { name: 'Percentage Charge', type: 'percentage', amount: 10 }, // 10% of 1725 = 172.5 -> 173 (rounded)
+        ]
+
+        const result = calculateQuotation(items, services)
+
+        expect(result.serviceTotalAmount).toBe(1000 + 600 + 173)
+        expect(result.totalBeforeVat).toBe(1725 + 1773)
+    })
+
+    it('Scenario: ตรวจสอบขั้นต่ำต่อใบ (Boundary)', () => {
+        const items: PricingLineItem[] = [{
+            name: 'สติกเกอร์จิ๋ว',
+            width: 0.1,
+            height: 0.1,
+            quantity: 1,
+            material: mockVinyl, // 0.01 sqm * 1.15 = 0.0115. 0.0115 * 250 = 2.875 -> 3
+        }]
+
+        const config: PricingConfig = {
+            ...DEFAULT_PRICING_CONFIG,
+            minimumChargePerOrder: 500,
+        }
+
+        // กรณีไม่ถึงขั้นต่ำ
+        const resultBelow = calculateQuotation(items, [], config)
+        expect(resultBelow.itemsSubtotal).toBe(3)
+        expect(resultBelow.totalBeforeVat).toBe(500)
+
+        // กรณีเกินขั้นต่ำ
+        const highValueItems: PricingLineItem[] = [{
+            name: 'ป้ายใหญ่',
+            width: 10,
+            height: 10,
+            quantity: 1,
+            material: mockVinyl,
+        }]
+        const resultAbove = calculateQuotation(highValueItems, [], config)
+        expect(resultAbove.totalBeforeVat).toBeGreaterThan(500)
+        expect(resultAbove.totalBeforeVat).toBe(resultAbove.itemsSubtotal)
+    })
+
+    it('Scenario: ปิดการปัดเศษ (roundToInteger: false)', () => {
+        const items: PricingLineItem[] = [{
+            name: 'ป้ายไวนิล',
+            width: 1,
+            height: 1,
+            quantity: 1,
+            material: mockVinyl, // 1 * 1.15 = 1.15. 1.15 * 250 = 287.5
+        }]
+
+        const config: PricingConfig = {
+            ...DEFAULT_PRICING_CONFIG,
+            roundToInteger: false,
+        }
+
+        const result = calculateQuotation(items, [], config)
+
+        expect(result.itemsSubtotal).toBe(287.5)
+        expect(result.vatAmount).toBeCloseTo(287.5 * 0.07, 2)
+        expect(result.grandTotal).toBeCloseTo(287.5 * 1.07, 2)
+    })
+
+    it('Scenario: มีแต่ค่าบริการ ไม่มีสินค้า', () => {
+        const services: ServiceCharge[] = [
+            { name: 'ค่าปรึกษา', type: 'fixed', amount: 1000 },
+        ]
+
+        const result = calculateQuotation([], services)
+
+        expect(result.lineItems).toHaveLength(0)
+        expect(result.itemsSubtotal).toBe(0)
+        expect(result.serviceTotalAmount).toBe(1000)
+        expect(result.totalBeforeVat).toBe(1000)
+        expect(result.grandTotal).toBe(1070) // 1000 + 7% VAT
+    })
 })
