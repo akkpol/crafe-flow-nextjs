@@ -141,9 +141,15 @@ export default async function DashboardPage() {
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{job.customer}</p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className={cn("text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg", priorityMap[job.priority]?.bgClass)}>
-                      {priorityMap[job.priority]?.label}
-                    </span>
+                    {(() => {
+                      const priority = job.priority ?? 'medium';
+                      const priorityConfig = priorityMap[priority] || priorityMap.medium;
+                      return (
+                        <span className={cn("text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg", priorityConfig.bgClass)}>
+                          {priorityConfig.label}
+                        </span>
+                      );
+                    })()}
                     <span className={cn("text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg border", statusMap[job.status]?.bgClass, statusMap[job.status]?.colorClass)}>
                       {statusMap[job.status]?.label || job.status}
                     </span>

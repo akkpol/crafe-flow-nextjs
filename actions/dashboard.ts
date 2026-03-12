@@ -3,6 +3,10 @@
 import { createClient } from '@/lib/supabase-server'
 import { Order, Material } from '@/lib/types'
 
+type RecentJobRow = Pick<Order, 'deadline' | 'id' | 'notes' | 'orderNumber' | 'priority' | 'status'> & {
+    Customer?: { name: string | null } | null
+}
+
 export async function getDashboardStats() {
     const supabase = await createClient()
 
@@ -48,7 +52,7 @@ export async function getRecentJobs() {
         return []
     }
 
-    return data.map((job: any) => ({
+    return ((data ?? []) as RecentJobRow[]).map((job) => ({
         id: job.id,
         title: job.orderNumber + (job.notes ? ` - ${job.notes}` : ''), // Use orderNumber as title for now as we don't have job title
         customer: job.Customer?.name || 'ลูกค้าทั่วไป',

@@ -5,6 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RoleDropdown } from '@/components/auth/RoleDropdown'
 import { Shield, Users, Clock, Crown, Briefcase, Eye } from 'lucide-react'
 
+type RoleRecord = { name: string }
+type ProfileWithRole = {
+    created_at: string | null
+    email: string | null
+    full_name: string | null
+    id: string
+    roles?: RoleRecord | RoleRecord[] | null
+}
+type RoleDefinition = {
+    id: string
+    name: string
+    permissions: unknown
+}
+
 const ROLE_CONFIG = {
     admin: {
         label: 'Admin',
@@ -32,6 +46,14 @@ const ROLE_CONFIG = {
     },
 } as const
 
+function getRoleName(profile: Pick<ProfileWithRole, 'roles'> | null | undefined) {
+    if (!profile?.roles) return null
+
+    return Array.isArray(profile.roles)
+        ? (profile.roles[0]?.name ?? null)
+        : (profile.roles.name ?? null)
+}
+
 export default async function AdminUsersPage() {
     const supabase = await createClient()
 
@@ -45,8 +67,7 @@ export default async function AdminUsersPage() {
         .eq('id', user.id)
         .single()
 
-    // @ts-ignore
-    if (myProfile?.roles?.name !== 'admin') {
+    if (getRoleName(myProfile as ProfileWithRole | null) !== 'admin') {
         return (
             <div className="flex min-h-[60vh] items-center justify-center p-8">
                 <Card className="w-full max-w-md border-red-200">
@@ -72,12 +93,15 @@ export default async function AdminUsersPage() {
         .select('id, name, permissions')
         .order('name')
 
+    const typedProfiles = (profiles ?? []) as ProfileWithRole[]
+    const typedRoles = (allRoles ?? []) as RoleDefinition[]
+
     // Stats
-    const roleCounts = profiles?.reduce((acc, p) => {
-        const role = (p.roles as any)?.name || 'pending'
+    const roleCounts = typedProfiles.reduce((acc, profile) => {
+        const role = getRoleName(profile) || 'pending'
         acc[role] = (acc[role] || 0) + 1
         return acc
-    }, {} as Record<string, number>) ?? {}
+    }, {} as Record<string, number>)
 
     return (
         <div className="p-6 max-w-6xl mx-auto space-y-6 pb-24">
@@ -117,7 +141,7 @@ export default async function AdminUsersPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="grid md:grid-cols-2 gap-3">
-                        {allRoles?.map((role) => (
+                        {typedRoles.map((role) => (
                             <div key={role.id} className="flex items-start gap-3 p-3 rounded-lg border bg-muted/30">
                                 <Badge
                                     variant={ROLE_CONFIG[role.name as keyof typeof ROLE_CONFIG]?.variant ?? 'secondary'}
@@ -143,13 +167,13 @@ export default async function AdminUsersPage() {
                 <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        ผู้ใช้ทั้งหมด ({profiles?.length || 0} คน)
+                        ผู้ใช้ทั้งหมด ({typedProfiles.length} คน)
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-3">
-                        {profiles?.map((profile) => {
-                            const roleName = (profile.roles as any)?.name as keyof typeof ROLE_CONFIG | undefined
+                        {typedProfiles.map((profile) => {
+                            const roleName = (getRoleName(profile) ?? undefined) as keyof typeof ROLE_CONFIG | undefined
                             const roleConf = roleName ? ROLE_CONFIG[roleName] : null
                             const Icon = roleConf?.icon ?? Clock
 
@@ -203,7 +227,7 @@ export default async function AdminUsersPage() {
                             )
                         })}
 
-                        {(!profiles || profiles.length === 0) && (
+                        {typedProfiles.length === 0 && (
                             <div className="text-center py-12 text-muted-foreground">
                                 <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
                                 <p>ยังไม่มีผู้ใช้ในระบบ</p>

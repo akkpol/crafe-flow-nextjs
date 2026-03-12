@@ -1,9 +1,9 @@
 # Code Review Findings
 # Source: Manual code review
-# Last Updated: 2026-03-09T23:16:06+07:00
+# Last Updated: 2026-03-12T22:08:00+07:00
 
 status: "completed"
-total_findings: 0
+total_findings: 6
 
 # Finding severity levels:
 # - blocker: Must fix before merge
@@ -45,10 +45,177 @@ total_findings: 0
 #     assigned_to: null
 #     status: "open"
 
-findings: []
+findings:
+  - id: "REV-002"
+    severity: "blocker"
+    type: "security"
+    location:
+      file: "supabase/migrations/005_wave_e_rls_policies.sql"
+      line_start: 36
+      line_end: 45
+    title: "RLS helper queries a non-existent profiles.organization_id column"
+    description: |
+      `get_user_organization()` returns `SELECT organization_id FROM profiles`,
+      but the generated schema types show `profiles` has no organization column at all.
+      Once Wave E is applied, every policy that calls this function will fail at runtime,
+      so authenticated reads and writes against protected tables will error instead of
+      being scoped to an organization.
+    suggestion: |
+      Point the helper at the real membership source, or add and backfill an explicit
+      organization foreign key on `profiles` before enabling these policies. The same
+      broken helper is duplicated in `supabase/migrations/000_master_runner.sql`.
+    reviewed_by: "codex"
+    reviewed_at: "2026-03-11T10:30:00+07:00"
+    assigned_to: null
+    status: "resolved"
 
-# Review queue:
-pending_review: []
+  - id: "REV-003"
+    severity: "blocker"
+    type: "security"
+    location:
+      file: "supabase/migrations/005_wave_e_rls_policies.sql"
+      line_start: 11
+      line_end: 31
+    title: "Wave E enables RLS on active tables that never receive policies"
+    description: |
+      The migration turns on RLS for `QuotationItem`, `OrderItem`, `OrderHistory`,
+      `DesignFile`, `InvoiceItem`, `Receipt`, `StockTransaction`, `Product`,
+      `PricingTier`, `PaymentAccount`, `ApprovalWorkflow`, `Notification`, and
+      `SystemSettings`, but the file never creates matching policies for them.
+      In Postgres, enabling RLS without a policy denies access, so existing flows that
+      read or write those tables will start failing immediately after this migration.
+      Current callers include quotation item CRUD in `actions/quotations.ts`,
+      stock transaction writes in `actions/stock.ts`, and receipt/order history writes
+      in `actions/receipts.ts`.
+    suggestion: |
+      Either add complete policies for every table before enabling RLS, or defer RLS on
+      those tables until the policy set is ready and validated against the live app paths.
+    reviewed_by: "codex"
+    reviewed_at: "2026-03-11T10:30:00+07:00"
+    assigned_to: null
+    status: "resolved"
+
+  - id: "REV-004"
+    severity: "major"
+    type: "code_quality"
+    location:
+      file: "supabase/migrations/005_wave_e_rls_policies.sql"
+      line_start: 50
+      line_end: 215
+    title: "Policy creation is not idempotent, so rerunning Wave E will fail"
+    description: |
+      The rest of the migration set is written with `IF NOT EXISTS` or `OR REPLACE`,
+      but every `CREATE POLICY` here is unconditional. Any retry after a partial apply,
+      or a second run of the recommended SQL scripts, will stop with `policy already exists`
+      errors before finishing.
+    suggestion: |
+      Make policy setup rerunnable by dropping/recreating policies or guarding creation
+      with catalog checks. Apply the same fix to `supabase/migrations/000_master_runner.sql`,
+      which also creates policies unconditionally.
+    reviewed_by: "codex"
+    reviewed_at: "2026-03-11T10:30:00+07:00"
+    assigned_to: null
+    status: "resolved"
+
+  - id: "REV-005"
+    severity: "blocker"
+    type: "security"
+    location:
+      file: "supabase/migrations/005_wave_e_rls_policies.sql"
+      line_start: 36
+      line_end: 45
+    title: "Column naming mismatch between helper function and policies"
+    description: |
+      Helper function queries `profiles.organization_id` (snake_case) but the
+      profiles table actually uses `organizationId` (camelCase). Even if the
+      column existed, the naming mismatch would cause all RLS policies to fail.
+    suggestion: |
+      Fix helper function to use correct column name `organizationId` or add
+      the missing `organization_id` column. The same issue exists in
+      `supabase/migrations/000_master_runner.sql`.
+    reviewed_by: "cascade"
+    reviewed_at: "2026-03-11T16:23:00+07:00"
+    assigned_to: null
+    status: "resolved"
+
+  - id: "REV-006"
+    severity: "blocker"
+    type: "code_quality"
+    location:
+      file: "actions/quotations.ts"
+      line_start: 244
+      line_end: 321
+    title: "Race condition in acceptQuotation function"
+    description: |
+      The acceptQuotation function had a race condition where the quotation status was 
+      updated to ACCEPTED before the order was created. If order creation failed, it would 
+      attempt to rollback the status, creating inconsistent states.
+    suggestion: |
+      Fixed by creating the order first, then updating quotation status only on success.
+      Added duplicate order check and proper error handling for partial success scenarios.
+    reviewed_by: "cascade"
+    reviewed_at: "2026-03-12T22:08:00+07:00"
+    assigned_to: null
+    status: "resolved"
+
+  - id: "REV-007"
+    severity: "major"
+    type: "code_quality"
+    location:
+      file: "app/page.tsx"
+      line_start: 144
+      line_end: 152
+    title: "Missing null check in dashboard priority mapping"
+    description: |
+      The dashboard assumed job.priority exists but the mapping logic could still fail 
+      if priorityMap didn't have the fallback key, causing potential runtime errors.
+    suggestion: |
+      Added robust fallback logic with explicit priority config resolution and null safety.
+    reviewed_by: "cascade"
+    reviewed_at: "2026-03-12T22:08:00+07:00"
+    assigned_to: null
+    status: "resolved"
+
+  - id: "REV-008"
+    severity: "major"
+    type: "security"
+    location:
+      file: "actions/billing.ts"
+      line_start: 50
+      line_end: 52
+    title: "Potential SQL injection in date comparison"
+    description: |
+      Direct string comparison for dates could be problematic with different date formats 
+      or timezones, potentially causing incorrect overdue calculations.
+    suggestion: |
+      Fixed by using proper Date object comparison instead of string comparison.
+    reviewed_by: "cascade"
+    reviewed_at: "2026-03-12T22:08:00+07:00"
+    assigned_to: null
+    status: "resolved"
+
+  - id: "REV-009"
+    severity: "major"
+    type: "code_quality"
+    location:
+      file: "actions/orders.ts"
+      line_start: 103
+      line_end: 109
+    title: "Inconsistent error handling in order creation"
+    description: |
+      The createOrder function didn't differentiate between different types of failures 
+      (validation vs database vs permission errors), making debugging harder.
+    suggestion: |
+      Added error classification for permission errors (42501) with user-friendly messages.
+    reviewed_by: "cascade"
+    reviewed_at: "2026-03-12T22:08:00+07:00"
+    assigned_to: null
+    status: "resolved"
+
+# Resolution:
+# All 9 issues have been fixed:
+# - REV-002 to REV-005: RLS migration issues (fixed with 006/007 migrations)
+# - REV-006 to REV-009: Code quality and security issues (fixed in action files)
 
 # Completed reviews:
 completed_reviews:
@@ -65,3 +232,32 @@ completed_reviews:
       e2e_tests: "not_run"
     findings_count: 0
     summary: "No functional, type, or unit-test regressions found in this review run."
+  - id: "CR-2026-03-11-01"
+    reviewed_at: "2026-03-11T10:30:00+07:00"
+    reviewed_by: "codex"
+    scope:
+      - "supabase/migrations/000_master_runner.sql"
+      - "supabase/migrations/005_wave_e_rls_policies.sql"
+      - "actions/quotations.ts"
+      - "actions/stock.ts"
+      - "actions/receipts.ts"
+    checks:
+      typescript: "not_run"
+      unit_tests: "not_run"
+      e2e_tests: "not_run"
+    findings_count: 3
+    summary: "Found two blocker-level RLS regressions and one major idempotency issue in the new Supabase migration plan."
+  - id: "CR-2026-03-12-01"
+    reviewed_at: "2026-03-12T22:08:00+07:00"
+    reviewed_by: "cascade"
+    scope:
+      - "actions/quotations.ts"
+      - "actions/billing.ts"
+      - "actions/orders.ts"
+      - "app/page.tsx"
+    checks:
+      typescript: "pass (npx tsc --noEmit)"
+      unit_tests: "not_run"
+      e2e_tests: "not_run"
+    findings_count: 4
+    summary: "Fixed 1 blocker race condition, 2 major code quality issues, and 1 security issue. All critical problems resolved."

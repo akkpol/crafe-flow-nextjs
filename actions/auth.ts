@@ -4,6 +4,18 @@ import { createClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
+type RoleLookup = {
+    roles?: { name?: string | null } | Array<{ name?: string | null }> | null
+}
+
+function getRoleName(record: RoleLookup | null | undefined) {
+    if (!record?.roles) return null
+
+    return Array.isArray(record.roles)
+        ? (record.roles[0]?.name ?? null)
+        : (record.roles.name ?? null)
+}
+
 export async function login(prevState: { error: string } | null, formData: FormData) {
     const supabase = await createClient()
 
@@ -26,7 +38,7 @@ export async function login(prevState: { error: string } | null, formData: FormD
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
         // Sync profile - ensure it exists
-        // We check if it exists first to avoid overwriting existing data if we want, 
+        // We check if it exists first to avoid overwriting existing data if we want,
         // but UPSERT with DO NOTHING or checking existence is safer if we don't want to reset fields.
         // Ideally, we just ensure the row exists.
         const { data: profile } = await supabase.from('profiles').select('id').eq('id', user.id).single()
@@ -74,7 +86,7 @@ export async function signup(prevState: { error: string } | null, formData: Form
     if (authData.user) {
         // 2. Create a profile entry (Trigger handles this usually, but good to be explicit or if trigger fails)
         // Actually, our trigger only handles `auth.users` -> `public.profiles` if we set it up that way.
-        // The previous migration didn't set up a trigger for `auth.users` -> `profiles`. 
+        // The previous migration didn't set up a trigger for `auth.users` -> `profiles`.
         // It set up audit logs triggers.
         // So we should manually create the profile here to be safe and immediate.
 
@@ -139,8 +151,7 @@ export async function updateRole(userId: string, roleName: string) {
         .eq('id', user.id)
         .single()
 
-    // @ts-ignore
-    if (callerProfile?.roles?.name !== 'admin') {
+    if (getRoleName(callerProfile as RoleLookup | null) !== 'admin') {
         return { error: 'Permission denied: Admin only' }
     }
 
@@ -148,9 +159,16 @@ export async function updateRole(userId: string, roleName: string) {
     const { data: role } = await supabase.from('roles').select('id').eq('name', roleName).single()
     if (!role) return { error: `Role ${roleName} not found` }
 
-    const { error } = await supabase.from('profiles').update({ role_id: role.id }).eq('id', userId)
+    // Update profile
+    const { error } = await supabase
+        .from('profiles')
+        .update({ role_id: role.id })
+        .eq('id', userId)
 
-    if (error) return { error: error.message }
+    if (error) {
+        console.error('Error updating role:', error)
+        return { error: error.message }
+    }
 
     revalidatePath('/admin/users')
     return { success: true }

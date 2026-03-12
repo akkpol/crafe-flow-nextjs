@@ -1,7 +1,26 @@
 'use server'
 
 import { createClient } from '@/lib/supabase-server'
-import { Order } from '@/lib/types'
+import type { Invoice, Order, Quotation, Receipt } from '@/lib/types'
+
+type CustomerSummary = { name: string | null }
+type QuoteDocumentRow = Pick<Quotation, 'createdAt' | 'grandTotal' | 'quotationNumber' | 'status' | 'totalAmount'> & {
+    Customer?: CustomerSummary | null
+}
+type InvoiceDocumentRow = Pick<Invoice, 'createdAt' | 'grandTotal' | 'invoiceNumber' | 'status' | 'totalAmount'> & {
+    Customer?: CustomerSummary | null
+}
+type ReceiptDocumentRow = Pick<Receipt, 'createdAt' | 'receiptNumber' | 'totalAmount'> & {
+    Customer?: CustomerSummary | null
+}
+type RecentDocument = {
+    amount: number
+    createdAt: string | null
+    customerName: string
+    docNumber: string
+    docType: 'Quote' | 'Invoice' | 'Receipt'
+    status: string | null
+}
 
 export async function getBillingStats() {
     const supabase = await createClient()
@@ -29,7 +48,7 @@ export async function getBillingStats() {
 
     // Overdue: Deadline passed and not done
     const overdue = orders.filter((o: Order) =>
-        o.deadline && o.deadline < today && o.status !== 'done'
+        o.deadline && new Date(o.deadline) < new Date() && o.status !== 'done'
     ).length
 
     // Paid Month: Done jobs updated this month (Proxy for payment)
@@ -49,28 +68,51 @@ export async function getRecentDocuments() {
         supabase.from('Receipt').select('*, Customer(name)').order('createdAt', { ascending: false }).limit(5)
     ])
 
-    const allDocs = [
-        ...(quotations.data || []).map((q: any) => ({ ...q, docType: 'Quote', docNumber: q.quotationNumber })),
-        ...(invoices.data || []).map((i: any) => ({ ...i, docType: 'Invoice', docNumber: i.invoiceNumber })),
-        ...(receipts.data || []).map((r: any) => ({ ...r, docType: 'Receipt', docNumber: r.receiptNumber }))
-    ]
+    const quotationDocs: RecentDocument[] = ((quotations.data ?? []) as QuoteDocumentRow[]).map((quotation) => ({
+        amount: quotation.grandTotal || quotation.totalAmount || 0,
+        createdAt: quotation.createdAt,
+        customerName: quotation.Customer?.name || 'ลูกค้าทั่วไป',
+        docNumber: quotation.quotationNumber,
+        docType: 'Quote',
+        status: quotation.status,
+    }))
+
+    const invoiceDocs: RecentDocument[] = ((invoices.data ?? []) as InvoiceDocumentRow[]).map((invoice) => ({
+        amount: invoice.grandTotal || invoice.totalAmount || 0,
+        createdAt: invoice.createdAt,
+        customerName: invoice.Customer?.name || 'ลูกค้าทั่วไป',
+        docNumber: invoice.invoiceNumber,
+        docType: 'Invoice',
+        status: invoice.status,
+    }))
+
+    const receiptDocs: RecentDocument[] = ((receipts.data ?? []) as ReceiptDocumentRow[]).map((receipt) => ({
+        amount: receipt.totalAmount || 0,
+        createdAt: receipt.createdAt,
+        customerName: receipt.Customer?.name || 'ลูกค้าทั่วไป',
+        docNumber: receipt.receiptNumber,
+        docType: 'Receipt',
+        status: 'PAID',
+    }))
+
+    const allDocs: RecentDocument[] = [...quotationDocs, ...invoiceDocs, ...receiptDocs]
 
     // Sort by createdAt desc
-    allDocs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    allDocs.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
 
-    return allDocs.slice(0, 15).map((d: any) => {
+    return allDocs.slice(0, 15).map((document) => {
         let status: 'draft' | 'sent' | 'paid' | 'overdue' = 'draft'
 
-        if (d.docType === 'Quote') {
-            switch (d.status) {
+        if (document.docType === 'Quote') {
+            switch (document.status) {
                 case 'DRAFT': status = 'draft'; break;
                 case 'SENT': status = 'sent'; break;
                 case 'ACCEPTED': status = 'paid'; break;
                 case 'REJECTED': status = 'overdue'; break;
                 default: status = 'draft';
             }
-        } else if (d.docType === 'Invoice') {
-            switch (d.status) {
+        } else if (document.docType === 'Invoice') {
+            switch (document.status) {
                 case 'DRAFT': status = 'draft'; break;
                 case 'SENT': status = 'sent'; break;
                 case 'PAID': status = 'paid'; break;
@@ -78,17 +120,19 @@ export async function getRecentDocuments() {
                 case 'VOID': status = 'overdue'; break;
                 default: status = 'draft';
             }
-        } else if (d.docType === 'Receipt') {
+        } else if (document.docType === 'Receipt') {
             status = 'paid'
         }
 
         return {
-            id: d.docNumber,
-            type: d.docType,
-            customer: d.Customer?.name || 'ลูกค้าทั่วไป',
-            date: new Date(d.createdAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }),
+            id: document.docNumber,
+            type: document.docType,
+            customer: document.customerName,
+            date: document.createdAt
+                ? new Date(document.createdAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })
+                : '-',
             status,
-            amount: d.grandTotal || d.totalAmount || 0,
+            amount: document.amount,
         }
     })
 }

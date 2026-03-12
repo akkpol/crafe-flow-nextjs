@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
-import type { QuotationStatus, Quotation, QuotationWithRelations, QuotationInsert, QuotationItemInsert } from '@/lib/types'
+import type { OrderInsert, QuotationStatus, Quotation, QuotationWithRelations } from '@/lib/types'
 import { requirePermission } from '@/lib/auth'
 import { QuotationSchema, QuotationItemSchema } from '@/lib/schemas'
 import { z } from 'zod'
@@ -238,8 +238,6 @@ export async function updateQuotationStatus(
     revalidatePath('/billing')
     return { success: true }
 }
-
-// ============================================================
 // ACCEPT QUOTATION → Auto-create Order (Quotation-First Workflow)
 // ============================================================
 
@@ -258,19 +256,18 @@ export async function acceptQuotation(
         return { success: false, error: 'ใบเสนอราคานี้ถูกยืนยันแล้ว' }
     }
 
-    // 2. Mark quotation as ACCEPTED
-    const { error: acceptError } = await supabase
-        .from('Quotation')
-        .update({
-            status: 'ACCEPTED',
-            approvedat: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        })
-        .eq('id', quotationId)
+    // 2. Check if order already exists for this quotation
+    const { data: existingOrder } = await supabase
+        .from('Order')
+        .select('id')
+        .eq('quotationid', quotationId)
+        .single()
 
-    if (acceptError) return { success: false, error: acceptError.message }
+    if (existingOrder) {
+        return { success: false, error: 'มีคำสั่งงานที่สร้างจากใบเสนอราคานี้แล้ว' }
+    }
 
-    // 3. Auto-create linked Order
+    // 3. Auto-create linked Order FIRST
     const { createOrder } = await import('@/actions/orders')
 
     const orderResult = await createOrder(
@@ -294,9 +291,27 @@ export async function acceptQuotation(
     )
 
     if (!orderResult.success) {
-        // QT accepted but order failed — rollback QT to SENT
-        await supabase.from('Quotation').update({ status: 'SENT', updatedAt: new Date().toISOString() }).eq('id', quotationId)
-        return { success: false, error: `ยืนยันใบเสนอราคาสำเร็จแต่สร้างงานไม่ได้: ${orderResult.error}` }
+        return { success: false, error: `ไม่สามารถสร้างคำสั่งงานได้: ${orderResult.error}` }
+    }
+
+    // 4. Only mark quotation as ACCEPTED after order is successfully created
+    const { error: acceptError } = await supabase
+        .from('Quotation')
+        .update({
+            status: 'ACCEPTED',
+            approvedat: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        })
+        .eq('id', quotationId)
+
+    if (acceptError) {
+        // Order was created but quotation update failed - this is a partial success
+        console.error('Failed to update quotation status after order creation:', acceptError)
+        return { 
+            success: true, 
+            orderId: orderResult.data?.id,
+            error: `สร้างคำสั่งงานสำเร็จแต่อัปเดตสถานะใบเสนอราคาไม่ได้: ${acceptError.message}` 
+        }
     }
 
     revalidatePath('/billing')
@@ -367,17 +382,19 @@ export async function createQuotationAndJob(
 
     const jobNotes = `[${quotation.quotationNumber}]${jobOptions.notes ? ' ' + jobOptions.notes : ''}`
 
+    const orderPayload: Partial<OrderInsert> = {
+        customerId: quotationData.customerId,
+        totalAmount: Number(quotationData.totalAmount) || 0,
+        vatAmount: Number(quotationData.vatAmount) || 0,
+        grandTotal: Number(quotationData.grandTotal) || 0,
+        deadline: jobOptions.deadline,
+        priority: jobOptions.priority,
+        notes: jobNotes,
+        quotationid: quotation.id,
+    }
+
     const orderResult = await createOrder(
-        {
-            customerId: quotationData.customerId,
-            totalAmount: quotationData.totalAmount || 0,
-            vatAmount: quotationData.vatAmount || 0,
-            grandTotal: quotationData.grandTotal || 0,
-            deadline: jobOptions.deadline,
-            priority: jobOptions.priority,
-            notes: jobNotes,
-            quotationid: quotation.id,
-        } as any,
+        orderPayload,
         items.map(item => ({
             name: item.name || 'Untitled Item',
             width: Number(item.width) || 0,

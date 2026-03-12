@@ -102,7 +102,10 @@ export async function createOrder(
 
     if (orderError) {
         console.error('Error creating order:', orderError)
-        return { success: false, error: orderError.message }
+        const errorMessage = orderError.code === '42501' 
+            ? 'Permission denied: You do not have rights to create orders'
+            : orderError.message;
+        return { success: false, error: errorMessage }
     }
 
     // 2. Create Order Items
