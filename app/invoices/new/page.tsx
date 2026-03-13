@@ -66,7 +66,7 @@ export default function NewInvoicePage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [date, setDate] = useState<Date>(new Date())
     const [dueDate, setDueDate] = useState<Date>(new Date(new Date().setDate(new Date().getDate() + 30)))
-    const [organization, setOrganization] = useState<any>(null) /* eslint-disable-line @typescript-eslint/no-explicit-any */
+    const [organization, setOrganization] = useState<any>(null)
     const [isPreviewOpen, setIsPreviewOpen] = useState(false)
     const [isTaxInvoice, setIsTaxInvoice] = useState(false)
 
@@ -118,10 +118,10 @@ export default function NewInvoicePage() {
 
 
 
-    const handleLineImport = async (user: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
+    const handleLineImport = async (user: any) => {
         const res = await createCustomer({ name: user.display_name, lineId: user.display_name })
         if (res.success && res.data) {
-            const newCust = { ...res.data, createdAt: new Date(), updatedAt: new Date() } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */
+            const newCust = { ...res.data, createdAt: new Date(), updatedAt: new Date() } as any
             setCustomers(prev => [...prev, newCust])
             setSelectedCustomer(newCust.id)
             toast.success('นำเข้าลูกค้าจาก LINE แล้ว')
