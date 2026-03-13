@@ -75,7 +75,7 @@ export default function NewQuotationPage() {
     const [openJobDeadline, setOpenJobDeadline] = useState(false)
 
     // Organization & Preview State
-    const [organization, setOrganization] = useState<any>(null)
+    const [organization, setOrganization] = useState<Record<string, unknown> | null>(null)
     const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
     // Customer State

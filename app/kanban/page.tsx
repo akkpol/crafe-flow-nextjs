@@ -262,7 +262,7 @@ export default function KanbanPage() {
                 ])
 
                 // Map API data to Kanban format
-                const mappedJobs: KanbanJob[] = orders.map((o: any) => ({
+                const mappedJobs: KanbanJob[] = orders.map((o: Record<string, unknown>) => ({
                     id: o.id,
                     title: o.OrderItem?.[0]?.name || 'งานไม่ระบุชื่อ',
                     customer: o.Customer?.name || 'ลูกค้าทั่วไป',

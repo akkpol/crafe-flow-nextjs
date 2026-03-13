@@ -32,7 +32,7 @@ describe('PricingCalculator Component', () => {
         vi.clearAllMocks()
             // Start by resolving with an empty array or basic mock materials
             // We have to type cast because vi.mocked doesn't always automatically infer
-            ; (pricingActions.getAllMaterialsForPricing as any).mockResolvedValue([
+            ; (pricingActions.getAllMaterialsForPricing as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([
                 { id: 'mat-1', name: 'Mock Vinyl', sellingPrice: 100, costPrice: 50, wasteFactor: 1, unit: 'sqm', tiers: [] }
             ])
     })

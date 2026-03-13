@@ -55,7 +55,7 @@ export async function updateSession(request: NextRequest) {
             .eq('id', user.id)
             .single()
 
-        const roleName = (profile?.roles as any)?.name as string | undefined
+        const roleName = (profile?.roles as Record<string, unknown>)?.name as string | undefined
         const isPending = !profile?.role_id
 
         // 2) User has no role -> /pending

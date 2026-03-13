@@ -131,7 +131,7 @@ export function PricingCalculator({ items, onChange, config }: PricingCalculator
         onChange(items.filter((item) => item.id !== id), null) // Will trigger effect
     }
 
-    const updateItem = (id: string, field: keyof CalcLineItem, value: any) => {
+    const updateItem = (id: string, field: keyof CalcLineItem, value: string | number | boolean) => {
         const updatedItems = items.map((item) => {
             if (item.id === id) {
                 const newItem = { ...item, [field]: value }
