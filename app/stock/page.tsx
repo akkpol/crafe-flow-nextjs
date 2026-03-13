@@ -66,14 +66,25 @@ export default function StockPage() {
     }
 
     useEffect(() => {
-        loadStock()
+        let mounted = true
+        const fetchStock = async () => {
+            setLoading(true)
+            try {
+                const data = await getStockItems()
+                if (mounted) setStock(data)
+            } finally {
+                if (mounted) setLoading(false)
+            }
+        }
+        fetchStock()
+        return () => { mounted = false }
     }, [])
 
     const handleCreate = async () => {
         try {
             if (!newMaterial.name) return toast.error("กรุณาระบุชื่อสินค้า")
 
-            await createMaterial({ ...newMaterial, type: newMaterial.type as any })
+            await createMaterial({ ...newMaterial, type: newMaterial.type as "product" | "material" })
             toast.success("เพิ่มสินค้าเรียบร้อยแล้ว")
             setIsAddOpen(false)
             setNewMaterial({
