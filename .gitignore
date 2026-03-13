@@ -23,18 +23,24 @@
 # misc
 .DS_Store
 *.pem
+.vs/
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+ts_errors*.txt
 
 # env files (can opt-in for committing if needed)
 .env*
 
 # vercel
 .vercel
+
+# local agent/editor config
+.codex/config.toml
+.codex/logs/
 
 # typescript
 *.tsbuildinfo
