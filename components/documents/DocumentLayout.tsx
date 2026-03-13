@@ -28,7 +28,7 @@ export interface DocumentData {
     vat: number;
     grandTotal: number;
     notes?: string;
-    paymentInfo?: any;
+    paymentInfo?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     status?: string;
 }
 

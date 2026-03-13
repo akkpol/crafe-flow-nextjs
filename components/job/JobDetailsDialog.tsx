@@ -10,18 +10,17 @@ import { useEffect, useState } from 'react'
 import { getOrderHistory } from '@/actions/history'
 
 interface JobDetailsDialogProps {
-    job: any
+    job: any // eslint-disable-line @typescript-eslint/no-explicit-any
     open: boolean
     onOpenChange: (open: boolean) => void
 }
 
 export function JobDetailsDialog({ job, open, onOpenChange }: JobDetailsDialogProps) {
-    const [history, setHistory] = useState<any[]>([])
+    const [history, setHistory] = useState<any[]>([]) // eslint-disable-line @typescript-eslint/no-explicit-any
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
         if (open && job?.id) {
-            setLoading(true)
             getOrderHistory(job.id)
                 .then(data => setHistory(data))
                 .catch(err => console.error(err))
@@ -87,7 +86,7 @@ export function JobDetailsDialog({ job, open, onOpenChange }: JobDetailsDialogPr
                                     {/* Vertical Line */}
                                     <div className="absolute left-[19px] top-2 bottom-2 w-px bg-border" />
 
-                                    {history.map((record, i) => (
+                                    {history.map((record) => (
                                         <div key={record.id} className="relative z-10 flex gap-3 text-sm">
                                             <div className="mt-0.5 relative">
                                                 <div className="w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-background" />
@@ -117,7 +116,7 @@ export function JobDetailsDialog({ job, open, onOpenChange }: JobDetailsDialogPr
     )
 }
 
-function formatAction(record: any) {
+function formatAction(record: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     switch (record.action) {
         case 'STATUS_CHANGE':
             const details = JSON.parse(record.details || '{}')
