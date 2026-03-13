@@ -55,14 +55,14 @@ export default function NewReceiptPage() {
     const router = useRouter()
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [date, setDate] = useState<Date>(new Date())
-    const [organization, setOrganization] = useState<any>(null) /* eslint-disable-line @typescript-eslint/no-explicit-any */
+    const [organization, setOrganization] = useState<any>(null)
     const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
     // Invoice Selection
-    const [invoices, setInvoices] = useState<any[]>([]) /* eslint-disable-line @typescript-eslint/no-explicit-any */
+    const [invoices, setInvoices] = useState<any[]>([])
     const [openInvoice, setOpenInvoice] = useState(false)
     const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>('')
-    const [invoiceDetails, setInvoiceDetails] = useState<any>(null) /* eslint-disable-line @typescript-eslint/no-explicit-any */
+    const [invoiceDetails, setInvoiceDetails] = useState<any>(null)
 
     // Receipt Details
     const [paymentMethod, setPaymentMethod] = useState('CASH')
@@ -133,7 +133,7 @@ export default function NewReceiptPage() {
             docNumber: 'DRAFT', // Will be generated on save
             date: date,
             reference: `REF: ${invoiceDetails.invoiceNumber}`,
-            items: invoiceDetails.InvoiceItem?.map((item: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, index: number) => ({
+            items: invoiceDetails.InvoiceItem?.map((item: any, index: number) => ({
                 index: index + 1,
                 name: item.name,
                 description: item.description,

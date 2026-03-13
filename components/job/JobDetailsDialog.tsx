@@ -10,22 +10,32 @@ import { useEffect, useState } from 'react'
 import { getOrderHistory } from '@/actions/history'
 
 interface JobDetailsDialogProps {
-    job: any // eslint-disable-line @typescript-eslint/no-explicit-any
+    job: any
     open: boolean
     onOpenChange: (open: boolean) => void
 }
 
 export function JobDetailsDialog({ job, open, onOpenChange }: JobDetailsDialogProps) {
-    const [history, setHistory] = useState<any[]>([]) // eslint-disable-line @typescript-eslint/no-explicit-any
+    const [history, setHistory] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
+        let ignore = false;
         if (open && job?.id) {
-            getOrderHistory(job.id)
-                .then(data => setHistory(data))
-                .catch(err => console.error(err))
-                .finally(() => setLoading(false))
+            const fetchHistory = async () => {
+                setLoading(true);
+                try {
+                    const data = await getOrderHistory(job.id);
+                    if (!ignore) setHistory(data);
+                } catch (err) {
+                    if (!ignore) console.error(err);
+                } finally {
+                    if (!ignore) setLoading(false);
+                }
+            };
+            fetchHistory();
         }
+        return () => { ignore = true; };
     }, [open, job?.id])
 
     if (!job) return null
@@ -86,7 +96,7 @@ export function JobDetailsDialog({ job, open, onOpenChange }: JobDetailsDialogPr
                                     {/* Vertical Line */}
                                     <div className="absolute left-[19px] top-2 bottom-2 w-px bg-border" />
 
-                                    {history.map((record) => (
+                                    {history.map((record, i) => (
                                         <div key={record.id} className="relative z-10 flex gap-3 text-sm">
                                             <div className="mt-0.5 relative">
                                                 <div className="w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-background" />
@@ -116,7 +126,7 @@ export function JobDetailsDialog({ job, open, onOpenChange }: JobDetailsDialogPr
     )
 }
 
-function formatAction(record: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+function formatAction(record: any) {
     switch (record.action) {
         case 'STATUS_CHANGE':
             const details = JSON.parse(record.details || '{}')

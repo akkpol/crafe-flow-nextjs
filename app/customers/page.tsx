@@ -59,25 +59,22 @@ export default function CustomersPage() {
 
     // ---- Load customers ----
     const loadCustomers = useCallback(async () => {
-        setLoading(true)
-        const data = await getCustomers()
-        setCustomers(data)
-        setLoading(false)
-    }, [])
+        setLoading(true);
+        try {
+            const data = await getCustomers();
+            setCustomers(data);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        let mounted = true
-        const fetch = async () => {
-            setLoading(true)
-            const data = await getCustomers()
-            if (mounted) {
-                setCustomers(data)
-                setLoading(false)
-            }
-        }
-        fetch()
-        return () => { mounted = false }
-    }, [])
+        let ignore = false;
+        loadCustomers().then(() => {
+            if(!ignore) {}
+        });
+        return () => { ignore = true; };
+    }, [loadCustomers])
 
     // ---- Filter ----
     const filtered = customers.filter(c => {

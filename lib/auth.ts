@@ -34,7 +34,7 @@ export const getProfile = cache(async () => {
 
 export const getUserRole = cache(async (): Promise<RoleName | null> => {
     const profile = await getProfile()
-    return ((profile?.roles as any /* eslint-disable-line @typescript-eslint/no-explicit-any */)?.name as RoleName) ?? null
+    return ((profile?.roles as any)?.name as RoleName) ?? null
 })
 
 /**
@@ -46,7 +46,7 @@ export const hasPermission = cache(async (permission: Permission): Promise<boole
     const profile = await getProfile()
     if (!profile?.roles) return false
 
-    const permissions: string[] = (profile.roles as any /* eslint-disable-line @typescript-eslint/no-explicit-any */)?.permissions ?? []
+    const permissions: string[] = (profile.roles as any)?.permissions ?? []
 
     // Wildcard grants everything
     if (permissions.includes('*')) return true
