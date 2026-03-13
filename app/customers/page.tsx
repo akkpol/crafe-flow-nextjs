@@ -65,7 +65,19 @@ export default function CustomersPage() {
         setLoading(false)
     }, [])
 
-    useEffect(() => { loadCustomers() }, [loadCustomers])
+    useEffect(() => {
+        let mounted = true
+        const fetch = async () => {
+            setLoading(true)
+            const data = await getCustomers()
+            if (mounted) {
+                setCustomers(data)
+                setLoading(false)
+            }
+        }
+        fetch()
+        return () => { mounted = false }
+    }, [])
 
     // ---- Filter ----
     const filtered = customers.filter(c => {
