@@ -14,6 +14,7 @@ import { z } from 'zod'
 export type KanbanOrderRecord = Order & {
     Customer?: Pick<Customer, 'name' | 'phone' | 'lineId'> | null
     OrderItem?: Pick<OrderItem, 'name'>[]
+    DesignFile?: { id: string }[]
     profiles?: Pick<Tables<'profiles'>, 'full_name' | 'avatar_url'> | null
 }
 
@@ -21,7 +22,7 @@ export async function getOrders(): Promise<KanbanOrderRecord[]> {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('Order')
-        .select('*, Customer(name, phone, lineId), OrderItem(name), profiles(full_name, avatar_url)')
+        .select('*, Customer(name, phone, lineId), OrderItem(name), DesignFile(id), profiles(full_name, avatar_url)')
         .order('createdAt', { ascending: false })
 
     if (error) {

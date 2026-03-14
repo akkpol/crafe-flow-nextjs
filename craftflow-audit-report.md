@@ -172,9 +172,9 @@
 ### 3.2 Design File Management (BLOCKER FEATURE)
 - **Role Access:** Owner, Production Manager, Production Staff, Sales Manager, Sales Staff
 - **Micro-functions:**
-  - ❌ File Upload System (No upload components or logic found in codebase)
-  - ❌ File Manager Interface
-  - ❌ File Versioning
+  - ✅ File Upload System (Implemented via `DesignFileManager` and Server Actions)
+  - ✅ File Manager Interface (Integrated into `JobDetailsDialog`)
+  - ❌ File Versioning (Basic logical tracking exists, UI pending)
 
 ### 3.3 Production Progress Tracking
 - **Role Access:** Production Manager, Production Staff

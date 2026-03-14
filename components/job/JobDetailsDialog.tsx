@@ -8,6 +8,13 @@ import { th } from 'date-fns/locale'
 import { Activity, FileText } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { getOrderHistory, type OrderHistoryRecord } from '@/actions/history'
+import { updateOrderProgress } from '@/actions/orders'
+import { toast } from 'sonner'
+import { Progress } from '@/components/ui/progress'
+import { DesignFileManager } from './DesignFileManager'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Save } from 'lucide-react'
 
 type JobSummary = {
     id: string
@@ -18,6 +25,7 @@ type JobSummary = {
     deadline: string
     assigneeName?: string
     assigneeAvatar?: string
+    progress?: number
 }
 
 interface JobDetailsDialogProps {
@@ -29,6 +37,12 @@ interface JobDetailsDialogProps {
 export function JobDetailsDialog({ job, open, onOpenChange }: JobDetailsDialogProps) {
     const [history, setHistory] = useState<OrderHistoryRecord[]>([])
     const [loading, setLoading] = useState(false)
+    const [progress, setProgress] = useState(0)
+    const [isUpdating, setIsUpdating] = useState(false)
+
+    useEffect(() => {
+        if (job) setProgress(job.progress || 0)
+    }, [job?.id, job?.progress])
 
     useEffect(() => {
         let ignore = false;
@@ -89,6 +103,66 @@ export function JobDetailsDialog({ job, open, onOpenChange }: JobDetailsDialogPr
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Progress Section */}
+                        <div className="p-4 bg-primary/5 rounded-lg border border-primary/10 space-y-3">
+                            <div className="flex justify-between items-center">
+                                <h3 className="font-semibold text-sm">ความคืบหน้า</h3>
+                                <span className="text-lg font-bold text-primary">{progress}%</span>
+                            </div>
+                            <Progress value={progress} className="h-2" />
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    step="5"
+                                    value={progress}
+                                    onChange={(e) => setProgress(parseInt(e.target.value))}
+                                    className="flex-1 h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                                />
+                                <Button 
+                                    size="sm" 
+                                    className="h-8 gap-1.5" 
+                                    disabled={isUpdating || progress === job.progress}
+                                    onClick={async () => {
+                                        setIsUpdating(true)
+                                        try {
+                                            const res = await updateOrderProgress(job.id, progress)
+                                            if (res.success) {
+                                                toast.success('อัปเดตความคืบหน้าแล้ว')
+                                                // We don't need to manually refresh job because KanbanPage will be revalidated
+                                            } else {
+                                                toast.error(res.error || 'อัปเดตล้มเหลว')
+                                            }
+                                        } finally {
+                                            setIsUpdating(false)
+                                        }
+                                    }}
+                                >
+                                    {isUpdating ? <Activity className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                    บันทึก
+                                </Button>
+                            </div>
+                            <div className="flex gap-1 overflow-x-auto pb-1">
+                                {[0, 25, 50, 75, 100].map(p => (
+                                    <Button
+                                        key={p}
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-[10px] px-2 min-w-[3rem]"
+                                        onClick={() => setProgress(p)}
+                                    >
+                                        {p}%
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Design Files Section */}
+                        <div className="p-4 bg-muted/10 rounded-lg border">
+                            <DesignFileManager orderId={job.id} />
                         </div>
                     </div>
 

@@ -29,7 +29,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { KANBAN_COLUMNS, STATUS_CONFIG, PRIORITY_CONFIG, type OrderStatus, type Priority } from '@/lib/types'
-import { Clock, GripVertical, MoreHorizontal, Loader2, User } from 'lucide-react'
+import { Clock, GripVertical, MoreHorizontal, Loader2, User, CheckCircle2, Paperclip } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
 import { getOrders, updateOrderStatus, updateOrderAssignee } from '@/actions/orders'
 import { getProfiles } from '@/actions/profiles'
 import { toast } from 'sonner'
@@ -45,6 +46,8 @@ interface KanbanJob {
     assigneeId: string | null
     assigneeName?: string
     assigneeAvatar?: string
+    progress?: number
+    attachmentCount?: number
 }
 
 interface Profile {
@@ -129,9 +132,21 @@ function JobCard({
                                         </span>
                                     </div>
                                 )}
-                                <Badge variant="outline" className={cn('text-[10px] h-5 px-1.5 font-normal border-0 bg-opacity-10', priorityConf.color.replace('text-', 'bg-').replace('600', '100'), priorityConf.color)}>
+                                    <Badge variant="outline" className={cn('text-[10px] h-5 px-1.5 font-normal border-0 bg-opacity-10', priorityConf.color.replace('text-', 'bg-').replace('600', '100'), priorityConf.color)}>
                                     {priorityConf.label}
                                 </Badge>
+                                {(job.attachmentCount ?? 0) > 0 && (
+                                    <div className="flex items-center gap-1 ml-1" title={`${job.attachmentCount} attachments`}>
+                                        <Paperclip className="w-3 h-3 text-muted-foreground" />
+                                        <span className="text-[10px] text-muted-foreground font-medium">{job.attachmentCount}</span>
+                                    </div>
+                                )}
+                                {(job.progress ?? 0) > 0 && (
+                                    <div className="flex items-center gap-1.5 ml-1" title={`Progress: ${job.progress}%`}>
+                                        <CheckCircle2 className={cn("w-3 h-3", job.progress === 100 ? "text-green-500" : "text-muted-foreground")} />
+                                        <span className="text-[10px] text-muted-foreground font-medium">{job.progress}%</span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Assignee Dropdown */}
@@ -179,6 +194,12 @@ function JobCard({
                         </div>
                     </div>
                 </div>
+                {/* Progress Bar */}
+                {(job.progress ?? 0) > 0 && job.progress !== 100 && (
+                    <div className="mt-3">
+                        <Progress value={job.progress} className="h-1" />
+                    </div>
+                )}
             </CardContent>
         </Card>
     )
@@ -271,7 +292,9 @@ export default function KanbanPage() {
                     deadline: o.deadline || '',
                     assigneeId: o.assigneeId,
                     assigneeName: o.profiles?.full_name,
-                    assigneeAvatar: o.profiles?.avatar_url
+                    assigneeAvatar: o.profiles?.avatar_url,
+                    progress: o.progresspercent || 0,
+                    attachmentCount: o.DesignFile?.length || 0
                 }))
 
                 setJobs(mappedJobs)

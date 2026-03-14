@@ -44,11 +44,14 @@ export async function login(prevState: { error: string } | null, formData: FormD
         const { data: profile } = await supabase.from('profiles').select('id').eq('id', user.id).single()
 
         if (!profile) {
+            // Get the first organization for now
+            const { data: org } = await supabase.from('Organization').select('id').limit(1).single()
+            
             await supabase.from('profiles').insert({
                 id: user.id,
                 email: user.email!,
                 full_name: user.user_metadata.full_name || user.email?.split('@')[0],
-                // role_id will be null (or default via DB if set), effectively 'user' or 'staff' depending on logic
+                organization_id: org?.id || '862865f3-45b1-4bf5-b62e-2afe87e3f7ac' // Fallback to the one we found
             })
         }
     }
@@ -110,13 +113,17 @@ export async function signup(prevState: { error: string } | null, formData: Form
                 if (adminRole) roleId = adminRole.id
             }
 
+            // Get organization
+            const { data: org } = await supabase.from('Organization').select('id').limit(1).single()
+
             await supabase
                 .from('profiles')
                 .insert({
                     id: authData.user.id,
                     email: email,
                     full_name: fullName,
-                    role_id: roleId
+                    role_id: roleId,
+                    organization_id: org?.id || '862865f3-45b1-4bf5-b62e-2afe87e3f7ac'
                 })
         }
 

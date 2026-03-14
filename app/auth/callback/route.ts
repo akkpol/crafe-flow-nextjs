@@ -42,12 +42,16 @@ export async function GET(request: Request) {
                         }
                     }
 
+                    // Get organization
+                    const { data: org } = await supabase.from('Organization').select('id').limit(1).single()
+
                     await supabase.from('profiles').insert({
                         id: user.id,
                         email: user.email!,
                         full_name: user.user_metadata.full_name || user.email?.split('@')[0],
                         avatar_url: user.user_metadata.avatar_url,
-                        role_id: roleId
+                        role_id: roleId,
+                        organization_id: org?.id || '862865f3-45b1-4bf5-b62e-2afe87e3f7ac'
                     })
                 }
             }
