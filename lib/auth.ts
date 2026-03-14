@@ -37,6 +37,11 @@ export const getUserRole = cache(async (): Promise<RoleName | null> => {
     return ((profile?.roles as any)?.name as RoleName) ?? null
 })
 
+function toPermissionList(value: unknown): string[] {
+    if (!Array.isArray(value)) return []
+    return value.filter((permission): permission is string => typeof permission === 'string')
+}
+
 /**
  * Check if the current user has a specific permission.
  * Admins with '*' permission pass all checks.
@@ -46,7 +51,7 @@ export const hasPermission = cache(async (permission: Permission): Promise<boole
     const profile = await getProfile()
     if (!profile?.roles) return false
 
-    const permissions: string[] = (profile.roles as any)?.permissions ?? []
+    const permissions = toPermissionList((profile.roles as any)?.permissions)
 
     // Wildcard grants everything
     if (permissions.includes('*')) return true

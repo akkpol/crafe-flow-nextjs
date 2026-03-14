@@ -5,18 +5,29 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { format } from 'date-fns'
 import { th } from 'date-fns/locale'
-import { User, Activity, Clock, FileText } from 'lucide-react'
+import { Activity, FileText } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { getOrderHistory } from '@/actions/history'
+import { getOrderHistory, type OrderHistoryRecord } from '@/actions/history'
+
+type JobSummary = {
+    id: string
+    title: string
+    customer: string
+    status: string
+    priority: string
+    deadline: string
+    assigneeName?: string
+    assigneeAvatar?: string
+}
 
 interface JobDetailsDialogProps {
-    job: any
+    job: JobSummary | null
     open: boolean
     onOpenChange: (open: boolean) => void
 }
 
 export function JobDetailsDialog({ job, open, onOpenChange }: JobDetailsDialogProps) {
-    const [history, setHistory] = useState<any[]>([])
+    const [history, setHistory] = useState<OrderHistoryRecord[]>([])
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
@@ -107,7 +118,7 @@ export function JobDetailsDialog({ job, open, onOpenChange }: JobDetailsDialogPr
                                                         {record.profiles?.full_name || 'ระบบ'}
                                                     </span>
                                                     <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                                                        {format(new Date(record.createdAt), 'HH:mm dd/MM', { locale: th })}
+                                                        {record.createdAt ? format(new Date(record.createdAt), 'HH:mm dd/MM', { locale: th }) : '-'}
                                                     </span>
                                                 </div>
                                                 <p className="text-muted-foreground text-xs leading-relaxed">
@@ -126,7 +137,7 @@ export function JobDetailsDialog({ job, open, onOpenChange }: JobDetailsDialogPr
     )
 }
 
-function formatAction(record: any) {
+function formatAction(record: OrderHistoryRecord) {
     switch (record.action) {
         case 'STATUS_CHANGE':
             const details = JSON.parse(record.details || '{}')

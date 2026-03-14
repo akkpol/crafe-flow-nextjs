@@ -50,19 +50,21 @@ import { getUnpaidInvoices, getInvoice } from '@/actions/invoices'
 import { createReceipt } from '@/actions/receipts'
 import { getOrganization } from '@/actions/organization'
 import { DocumentLayout, type DocumentData } from '@/components/documents/DocumentLayout'
+import type { InvoiceDetails, InvoiceListItem } from '@/actions/invoices'
+import type { Organization } from '@/lib/types'
 
 export default function NewReceiptPage() {
     const router = useRouter()
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [date, setDate] = useState<Date>(new Date())
-    const [organization, setOrganization] = useState<any>(null)
+    const [organization, setOrganization] = useState<Organization | null>(null)
     const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
     // Invoice Selection
-    const [invoices, setInvoices] = useState<any[]>([])
+    const [invoices, setInvoices] = useState<InvoiceListItem[]>([])
     const [openInvoice, setOpenInvoice] = useState(false)
     const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>('')
-    const [invoiceDetails, setInvoiceDetails] = useState<any>(null)
+    const [invoiceDetails, setInvoiceDetails] = useState<InvoiceDetails | null>(null)
 
     // Receipt Details
     const [paymentMethod, setPaymentMethod] = useState('CASH')
@@ -91,6 +93,10 @@ export default function NewReceiptPage() {
     const handleSave = async () => {
         if (!selectedInvoiceId || !invoiceDetails) {
             toast.error('กรุณาเลือกใบแจ้งหนี้')
+            return
+        }
+        if (!invoiceDetails.customerId) {
+            toast.error('ใบแจ้งหนี้นี้ไม่มีข้อมูลลูกค้า')
             return
         }
 
@@ -146,7 +152,7 @@ export default function NewReceiptPage() {
             subtotal: invoiceDetails.totalAmount, // Assuming specific field names match
             vat: invoiceDetails.vatAmount,
             grandTotal: invoiceDetails.grandTotal,
-            notes: notes || invoiceDetails.notes,
+            notes,
             status: 'PAID'
         }
     }

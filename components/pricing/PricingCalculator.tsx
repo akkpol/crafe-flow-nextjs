@@ -131,10 +131,10 @@ export function PricingCalculator({ items, onChange, config }: PricingCalculator
         onChange(items.filter((item) => item.id !== id), null) // Will trigger effect
     }
 
-    const updateItem = (id: string, field: keyof CalcLineItem, value: any) => {
+    const updateItem = <K extends keyof CalcLineItem>(id: string, field: K, value: CalcLineItem[K]) => {
         const updatedItems = items.map((item) => {
             if (item.id === id) {
-                const newItem = { ...item, [field]: value }
+                const newItem = { ...item, [field]: value } as CalcLineItem
                 // If user changes material, reset custom price so standard price applies
                 if (field === 'materialId') {
                     newItem.customUnitPrice = null
@@ -142,7 +142,7 @@ export function PricingCalculator({ items, onChange, config }: PricingCalculator
                 // If user changes width/height and material uses pieces, maybe we don't care, 
                 // but if they type a custom unit price manually
                 if (field === 'unitPrice') {
-                    newItem.customUnitPrice = value // Store manual override
+                    newItem.customUnitPrice = value as number // Store manual override
                 }
                 return newItem
             }

@@ -1,8 +1,13 @@
 'use server'
 
 import { createClient } from '@/lib/supabase-server'
+import type { OrderHistory, Tables } from '@/lib/types'
 
-export async function getOrderHistory(orderId: string) {
+export type OrderHistoryRecord = OrderHistory & {
+    profiles?: Pick<Tables<'profiles'>, 'full_name' | 'avatar_url'> | null
+}
+
+export async function getOrderHistory(orderId: string): Promise<OrderHistoryRecord[]> {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('OrderHistory')
@@ -15,5 +20,5 @@ export async function getOrderHistory(orderId: string) {
         return []
     }
 
-    return data
+    return data as OrderHistoryRecord[]
 }

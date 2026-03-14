@@ -33,6 +33,16 @@ const typeLabels: Record<string, string> = {
     OTHER: '📦 Accessories',
 }
 
+type NewMaterialForm = {
+    name: string
+    type: NonNullable<Material['type']>
+    inStock: number
+    minStock: number
+    costPrice: number
+    sellingPrice: number
+    unit: string
+}
+
 function getStockLevel(current: number, min: number | null): { label: string; color: string; bgColor: string; glow: string } {
     if (!min) return { label: 'Healthy', color: 'text-emerald-400', bgColor: 'bg-emerald-500', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.3)]' }
     const ratio = current / min
@@ -48,7 +58,7 @@ export default function StockPage() {
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState<string | null>(null)
     const [isAddOpen, setIsAddOpen] = useState(false)
-    const [newMaterial, setNewMaterial] = useState({
+    const [newMaterial, setNewMaterial] = useState<NewMaterialForm>({
         name: '',
         type: 'VINYL',
         inStock: 0,
@@ -80,7 +90,7 @@ export default function StockPage() {
         try {
             if (!newMaterial.name) return toast.error("กรุณาระบุชื่อสินค้า")
 
-            await createMaterial({ ...newMaterial, type: newMaterial.type as any })
+            await createMaterial(newMaterial)
             toast.success("เพิ่มสินค้าเรียบร้อยแล้ว")
             setIsAddOpen(false)
             setNewMaterial({
@@ -171,7 +181,7 @@ export default function StockPage() {
                                         <Label htmlFor="type" className="text-right">ประเภท</Label>
                                         <Select
                                             value={newMaterial.type}
-                                            onValueChange={(val) => setNewMaterial({ ...newMaterial, type: val })}
+                                            onValueChange={(val) => setNewMaterial({ ...newMaterial, type: val as NewMaterialForm['type'] })}
                                         >
                                             <SelectTrigger className="col-span-3">
                                                 <SelectValue placeholder="เลือกประเภท" />

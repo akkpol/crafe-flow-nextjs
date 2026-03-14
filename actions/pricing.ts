@@ -41,9 +41,13 @@ export async function getMaterialForPricing(materialId: string): Promise<Pricing
 
     return {
         ...material,
+        sellingPrice: material.sellingPrice ?? 0,
+        costPrice: material.costPrice ?? 0,
+        wasteFactor: material.wasteFactor ?? 1,
+        unit: material.unit ?? 'piece',
         tiers: (tiers || []).map(t => ({
-            minQuantity: t.minQuantity,
-            discountPercent: t.discountPercent,
+            minQuantity: t.minQuantity ?? 0,
+            discountPercent: t.discountPercent ?? 0,
         })),
     }
 }
@@ -78,6 +82,10 @@ export async function getAllMaterialsForPricing(): Promise<(PricingMaterial & { 
 
     return materials.map(m => ({
         ...m,
+        sellingPrice: m.sellingPrice ?? 0,
+        costPrice: m.costPrice ?? 0,
+        wasteFactor: m.wasteFactor ?? 1,
+        unit: m.unit ?? 'piece',
         tiers: tierMap.get(m.id) || [],
     }))
 }

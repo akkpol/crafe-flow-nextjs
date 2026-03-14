@@ -32,22 +32,22 @@ export interface DocumentData {
     status?: string;
 }
 
-interface OrganizationData {
+export interface OrganizationData {
     name: string;
-    address?: string;
-    taxId?: string;
-    phone?: string;
-    email?: string;
-    logoUrl?: string;
-    signatureUrl?: string;
+    address?: string | null;
+    taxId?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    logoUrl?: string | null;
+    signatureUrl?: string | null;
 }
 
-interface CustomerData {
+export interface CustomerData {
     name: string;
-    address?: string;
-    taxId?: string;
-    phone?: string;
-    email?: string;
+    address?: string | null;
+    taxId?: string | null;
+    phone?: string | null;
+    email?: string | null;
 }
 
 interface DocumentLayoutProps {

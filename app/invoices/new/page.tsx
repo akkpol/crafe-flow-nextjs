@@ -54,19 +54,20 @@ import * as VisuallyHiddenPrimitive from '@radix-ui/react-visually-hidden'
 import { getCustomers, createCustomer } from '@/actions/customers'
 import { createInvoice } from '@/actions/invoices'
 import { getOrganization } from '@/actions/organization'
-import type { Customer } from '@/lib/types'
+import type { Customer, Organization } from '@/lib/types'
 import { LineUserSearch } from '@/components/customers/LineUserSearch'
 import { DocumentLayout, type DocumentData } from '@/components/documents/DocumentLayout'
 
 import { PricingCalculator, type CalcLineItem } from '@/components/pricing/PricingCalculator'
 import type { QuotationResult } from '@/lib/pricing-engine'
+import type { LineUser } from '@/actions/line'
 
 export default function NewInvoicePage() {
     const router = useRouter()
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [date, setDate] = useState<Date>(new Date())
     const [dueDate, setDueDate] = useState<Date>(new Date(new Date().setDate(new Date().getDate() + 30)))
-    const [organization, setOrganization] = useState<any>(null)
+    const [organization, setOrganization] = useState<Organization | null>(null)
     const [isPreviewOpen, setIsPreviewOpen] = useState(false)
     const [isTaxInvoice, setIsTaxInvoice] = useState(false)
 
@@ -118,12 +119,12 @@ export default function NewInvoicePage() {
 
 
 
-    const handleLineImport = async (user: any) => {
-        const res = await createCustomer({ name: user.display_name, lineId: user.display_name })
+    const handleLineImport = async (user: LineUser) => {
+        const res = await createCustomer({ name: user.display_name, lineId: user.line_user_id })
         if (res.success && res.data) {
-            const newCust = { ...res.data, createdAt: new Date(), updatedAt: new Date() } as any
-            setCustomers(prev => [...prev, newCust])
-            setSelectedCustomer(newCust.id)
+            const newCustomer = res.data
+            setCustomers(prev => [...prev, newCustomer])
+            setSelectedCustomer(newCustomer.id)
             toast.success('นำเข้าลูกค้าจาก LINE แล้ว')
         }
     }
@@ -230,16 +231,18 @@ export default function NewInvoicePage() {
                             <VisuallyHiddenPrimitive.Root asChild>
                                 <DialogTitle>ตัวอย่างใบแจ้งหนี้</DialogTitle>
                             </VisuallyHiddenPrimitive.Root>
-                            <div className="flex-1 flex justify-center py-8 px-4">
-                                <div className="w-full max-w-3xl">
-                                    <DocumentLayout
-                                        type={isTaxInvoice ? "TAX_INVOICE" : "INVOICE"}
-                                        org={organization}
-                                        customer={customerData}
-                                        data={prepareDocumentData()}
-                                    />
+                            {organization && (
+                                <div className="flex-1 flex justify-center py-8 px-4">
+                                    <div className="w-full max-w-3xl">
+                                        <DocumentLayout
+                                            type={isTaxInvoice ? "TAX_INVOICE" : "INVOICE"}
+                                            org={organization}
+                                            customer={customerData}
+                                            data={prepareDocumentData()}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                             <Button className="fixed bottom-8 right-8 shadow-xl z-50" onClick={() => window.print()}>
                                 <Printer className="mr-2 h-4 w-4" /> สั่งพิมพ์ / PDF
                             </Button>

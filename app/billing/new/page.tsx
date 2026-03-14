@@ -53,6 +53,7 @@ import { DocumentLayout, type DocumentData } from '@/components/documents/Docume
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import * as VisuallyHiddenPrimitive from '@radix-ui/react-visually-hidden'
 import { toast } from 'sonner'
+import type { Organization } from '@/lib/types'
 
 // Dummy customer data (replace with server action search later)
 const customers = [
@@ -75,7 +76,7 @@ export default function NewQuotationPage() {
     const [openJobDeadline, setOpenJobDeadline] = useState(false)
 
     // Organization & Preview State
-    const [organization, setOrganization] = useState<any>(null)
+    const [organization, setOrganization] = useState<Organization | null>(null)
     const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
     // Customer State
@@ -226,16 +227,18 @@ export default function NewQuotationPage() {
                             <VisuallyHiddenPrimitive.Root asChild>
                                 <DialogTitle>ตัวอย่างใบเสนอราคา</DialogTitle>
                             </VisuallyHiddenPrimitive.Root>
-                            <div className="flex-1 flex justify-center py-8 px-4">
-                                <div className="w-full max-w-3xl">
-                                    <DocumentLayout
-                                        type="QUOTATION"
-                                        org={organization}
-                                        customer={{ name: selectedCustomer || 'ลูกค้าทั่วไป', address: customerDetails.address, taxId: customerDetails.taxId }}
-                                        data={prepareDocumentData()}
-                                    />
+                            {organization && (
+                                <div className="flex-1 flex justify-center py-8 px-4">
+                                    <div className="w-full max-w-3xl">
+                                        <DocumentLayout
+                                            type="QUOTATION"
+                                            org={organization}
+                                            customer={{ name: selectedCustomer || 'ลูกค้าทั่วไป', address: customerDetails.address, taxId: customerDetails.taxId }}
+                                            data={prepareDocumentData()}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                             <Button className="fixed bottom-8 right-8 shadow-xl z-50" onClick={() => window.print()}>
                                 <Printer className="mr-2 h-4 w-4" /> สั่งพิมพ์ / PDF
                             </Button>

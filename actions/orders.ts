@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
-import type { Order, OrderStatus, OrderInsert, OrderItemInsert, OrderWithRelations } from '@/lib/types'
+import type { Customer, Order, OrderItem, OrderStatus, OrderInsert, OrderItemInsert, OrderWithRelations, Tables } from '@/lib/types'
 import { requirePermission } from '@/lib/auth'
 import { OrderSchema, OrderItemSchema, UpdateOrderProgressSchema } from '@/lib/schemas'
 import { z } from 'zod'
@@ -11,7 +11,13 @@ import { z } from 'zod'
 // READ
 // ============================================================
 
-export async function getOrders() {
+export type KanbanOrderRecord = Order & {
+    Customer?: Pick<Customer, 'name' | 'phone' | 'lineId'> | null
+    OrderItem?: Pick<OrderItem, 'name'>[]
+    profiles?: Pick<Tables<'profiles'>, 'full_name' | 'avatar_url'> | null
+}
+
+export async function getOrders(): Promise<KanbanOrderRecord[]> {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('Order')
@@ -22,7 +28,7 @@ export async function getOrders() {
         console.error('Error fetching orders:', error)
         return []
     }
-    return data
+    return data as KanbanOrderRecord[]
 }
 
 export async function getOrder(id: string): Promise<OrderWithRelations | null> {

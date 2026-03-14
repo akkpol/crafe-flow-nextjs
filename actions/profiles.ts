@@ -1,8 +1,9 @@
 'use server'
 
 import { createClient } from '@/lib/supabase-server'
+import type { Tables } from '@/lib/types'
 
-export async function getProfiles() {
+export async function getProfiles(): Promise<Tables<'profiles'>[]> {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('profiles')
@@ -13,5 +14,5 @@ export async function getProfiles() {
         console.error('Error fetching profiles:', error)
         return []
     }
-    return data
+    return data as Tables<'profiles'>[]
 }

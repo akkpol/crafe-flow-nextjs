@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
-import type { InvoiceStatus } from '@/lib/types'
+import type { Customer, Invoice, InvoiceItem, InvoiceStatus } from '@/lib/types'
 import { requirePermission } from '@/lib/auth'
 import { InvoiceSchema, InvoiceItemSchema } from '@/lib/schemas'
 import { z } from 'zod'
@@ -210,7 +210,16 @@ export async function getInvoices() {
     return data
 }
 
-export async function getInvoice(id: string) {
+export type InvoiceListItem = Pick<Invoice, 'id' | 'invoiceNumber' | 'grandTotal' | 'createdAt' | 'status'> & {
+    Customer?: Pick<Customer, 'name'> | null
+}
+
+export type InvoiceDetails = Invoice & {
+    Customer?: Pick<Customer, 'id' | 'name' | 'address' | 'taxId'> | null
+    InvoiceItem?: InvoiceItem[]
+}
+
+export async function getInvoice(id: string): Promise<InvoiceDetails | null> {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('Invoice')
@@ -219,10 +228,10 @@ export async function getInvoice(id: string) {
         .single()
 
     if (error) return null
-    return data
+    return data as InvoiceDetails
 }
 
-export async function getUnpaidInvoices() {
+export async function getUnpaidInvoices(): Promise<InvoiceListItem[]> {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('Invoice')
@@ -231,5 +240,5 @@ export async function getUnpaidInvoices() {
         .order('createdAt', { ascending: false })
 
     if (error) return []
-    return data
+    return data as InvoiceListItem[]
 }

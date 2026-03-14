@@ -1,0 +1,33 @@
+
+> craftflow@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.180:3000
+- Environments: .env.local
+
+✓ Starting...
+○ Compiling proxy ...
+✓ Ready in 48s
+○ Compiling /login ...
+ GET /login 200 in 78s (compile: 78s, proxy.ts: 111ms, render: 644ms)
+○ Compiling /manifest.webmanifest ...
+ GET /manifest.webmanifest 200 in 5.0s (compile: 5.0s, render: 30ms)
+ GET /login 200 in 1184ms (compile: 294ms, proxy.ts: 20ms, render: 871ms)
+ GET /manifest.webmanifest 200 in 200ms (compile: 180ms, render: 19ms)
+✓ Finished filesystem cache database compaction in 24.3s
+ GET /login 200 in 142ms (compile: 11ms, proxy.ts: 11ms, render: 120ms)
+ GET /manifest.webmanifest 200 in 56ms (compile: 30ms, render: 26ms)
+ GET /login 200 in 301ms (compile: 19ms, proxy.ts: 19ms, render: 262ms)
+ GET /manifest.webmanifest 200 in 31ms (compile: 12ms, render: 19ms)
+ GET /manifest.webmanifest 200 in 68ms (compile: 30ms, render: 38ms)
+ GET /login 200 in 408ms (compile: 16ms, proxy.ts: 18ms, render: 374ms)
+ GET /login 200 in 562ms (compile: 28ms, proxy.ts: 23ms, render: 511ms)
+ GET /manifest.webmanifest 200 in 71ms (compile: 50ms, render: 21ms)
+ GET /login 200 in 378ms (compile: 19ms, proxy.ts: 15ms, render: 345ms)
+ GET /manifest.webmanifest 200 in 114ms (compile: 41ms, render: 73ms)
+ GET /manifest.webmanifest 200 in 41ms (compile: 15ms, render: 26ms)
+ GET /login 200 in 462ms (compile: 16ms, proxy.ts: 16ms, render: 430ms)
+ GET /login 200 in 1239ms (compile: 62ms, proxy.ts: 44ms, render: 1133ms)
+ GET /manifest.webmanifest 200 in 48ms (compile: 16ms, render: 32ms)

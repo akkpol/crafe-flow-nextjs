@@ -2,8 +2,16 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { Database } from './database.types'
+import { getMissingSupabaseEnv } from './env'
 
 export async function createClient() {
+    const missing = getMissingSupabaseEnv()
+    if (missing.length > 0) {
+        throw new Error(
+            `Supabase environment is not configured. Missing: ${missing.join(', ')}`
+        )
+    }
+
     const cookieStore = await cookies()
 
     return createServerClient<Database>(

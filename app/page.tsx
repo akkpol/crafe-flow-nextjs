@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { getDashboardStats, getRecentJobs, getLowStockMaterials } from '@/actions/dashboard'
 import { getProfile } from '@/lib/auth'
+import { getMissingSupabaseEnv, isSupabaseConfigured } from '@/lib/env'
 
 const statusMap: Record<string, { label: string; colorClass: string; bgClass: string }> = {
   new: { label: 'รับงาน', colorClass: 'text-blue-400', bgClass: 'bg-blue-400/10 border-blue-400/20' },
@@ -30,6 +31,61 @@ const priorityMap: Record<string, { label: string; bgClass: string }> = {
 }
 
 export default async function DashboardPage() {
+  if (!isSupabaseConfigured()) {
+    const missing = getMissingSupabaseEnv()
+
+    return (
+      <div className="min-h-screen p-4 md:p-8 max-w-5xl mx-auto flex items-center">
+        <div className="w-full rounded-3xl border border-amber-500/20 bg-gradient-to-br from-card via-card to-amber-500/5 shadow-2xl overflow-hidden">
+          <div className="border-b border-border/60 px-6 py-5 md:px-8 md:py-6">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-amber-400">Environment Setup Required</p>
+            <h1 className="mt-2 text-3xl md:text-4xl font-black tracking-tight text-foreground">
+              CraftFlow is installed, but Supabase is not configured yet.
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm md:text-base text-muted-foreground">
+              The app shell is running correctly. To unlock login, dashboard data, and operational pages,
+              add the missing environment variables to <code className="rounded bg-muted px-1.5 py-0.5 text-xs">.env.local</code>.
+            </p>
+          </div>
+
+          <div className="grid gap-6 p-6 md:grid-cols-[1.2fr_0.8fr] md:p-8">
+            <section className="space-y-4">
+              <div className="rounded-2xl border border-border/60 bg-background/70 p-5">
+                <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Missing Variables</h2>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {missing.map((name) => (
+                    <span key={name} className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300">
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-border/60 bg-background/70 p-5">
+                <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Next Steps</h2>
+                <ol className="mt-4 space-y-3 text-sm text-foreground/90 list-decimal list-inside">
+                  <li>Copy <code className="rounded bg-muted px-1.5 py-0.5 text-xs">.env.example</code> to <code className="rounded bg-muted px-1.5 py-0.5 text-xs">.env.local</code>.</li>
+                  <li>Fill in your Supabase project URL and anon key.</li>
+                  <li>Restart <code className="rounded bg-muted px-1.5 py-0.5 text-xs">npm run dev</code>.</li>
+                </ol>
+              </div>
+            </section>
+
+            <aside className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-5">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-cyan-300">Expected After Setup</h2>
+              <ul className="mt-4 space-y-3 text-sm text-cyan-50/90">
+                <li>Login flow works through Supabase auth.</li>
+                <li>Dashboard cards load live data.</li>
+                <li>Billing, jobs, stock, and admin pages stop failing on startup.</li>
+                <li>Playwright can continue full homepage click-through testing.</li>
+              </ul>
+            </aside>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const statsData = await getDashboardStats()
   const recentJobs = await getRecentJobs()
   const lowStockItems = await getLowStockMaterials()

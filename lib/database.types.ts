@@ -105,6 +105,7 @@ export type Database = {
           category: string | null
           createdat: string | null
           description: string | null
+          displayOrder: number | null
           filename: string
           filesize: number | null
           filetype: string
@@ -125,6 +126,7 @@ export type Database = {
           category?: string | null
           createdat?: string | null
           description?: string | null
+          displayOrder?: number | null
           filename: string
           filesize?: number | null
           filetype: string
@@ -145,6 +147,7 @@ export type Database = {
           category?: string | null
           createdat?: string | null
           description?: string | null
+          displayOrder?: number | null
           filename?: string
           filesize?: number | null
           filetype?: string
@@ -216,122 +219,6 @@ export type Database = {
         }
         Relationships: []
       }
-      blog_comments: {
-        Row: {
-          author_id: string | null
-          content: string
-          created_at: string
-          id: string
-          is_spam: boolean
-          post_id: string
-        }
-        Insert: {
-          author_id?: string | null
-          content: string
-          created_at?: string
-          id?: string
-          is_spam?: boolean
-          post_id: string
-        }
-        Update: {
-          author_id?: string | null
-          content?: string
-          created_at?: string
-          id?: string
-          is_spam?: boolean
-          post_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "blog_comments_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "blog_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "blog_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "blog_posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      blog_posts: {
-        Row: {
-          author_id: string
-          content: string
-          created_at: string
-          id: string
-          published: boolean
-          published_at: string | null
-          slug: string
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          author_id: string
-          content: string
-          created_at?: string
-          id?: string
-          published?: boolean
-          published_at?: string | null
-          slug: string
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          author_id?: string
-          content?: string
-          created_at?: string
-          id?: string
-          published?: boolean
-          published_at?: string | null
-          slug?: string
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "blog_posts_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "blog_users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      blog_users: {
-        Row: {
-          avatar_url: string | null
-          bio: string | null
-          created_at: string
-          email: string
-          full_name: string | null
-          id: string
-          username: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string
-          email: string
-          full_name?: string | null
-          id?: string
-          username: string
-        }
-        Update: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string
-          email?: string
-          full_name?: string | null
-          id?: string
-          username?: string
-        }
-        Relationships: []
-      }
       Customer: {
         Row: {
           address: string | null
@@ -341,13 +228,20 @@ export type Database = {
           creditlimit: number | null
           email: string | null
           id: string
+          industry: string | null
           isactive: boolean | null
+          lastOrderDate: string | null
           lineId: string | null
           name: string
+          notes: string | null
           organizationId: string
           paymentterms: number | null
           phone: string | null
+          referralSource: string | null
+          source: string | null
+          tags: string[] | null
           taxId: string | null
+          totalSpent: number | null
           updatedAt: string
         }
         Insert: {
@@ -358,13 +252,20 @@ export type Database = {
           creditlimit?: number | null
           email?: string | null
           id: string
+          industry?: string | null
           isactive?: boolean | null
+          lastOrderDate?: string | null
           lineId?: string | null
           name: string
+          notes?: string | null
           organizationId: string
           paymentterms?: number | null
           phone?: string | null
+          referralSource?: string | null
+          source?: string | null
+          tags?: string[] | null
           taxId?: string | null
+          totalSpent?: number | null
           updatedAt: string
         }
         Update: {
@@ -375,13 +276,20 @@ export type Database = {
           creditlimit?: number | null
           email?: string | null
           id?: string
+          industry?: string | null
           isactive?: boolean | null
+          lastOrderDate?: string | null
           lineId?: string | null
           name?: string
+          notes?: string | null
           organizationId?: string
           paymentterms?: number | null
           phone?: string | null
+          referralSource?: string | null
+          source?: string | null
+          tags?: string[] | null
           taxId?: string | null
+          totalSpent?: number | null
           updatedAt?: string
         }
         Relationships: [
@@ -694,6 +602,7 @@ export type Database = {
       }
       Material: {
         Row: {
+          barcode: string | null
           category: string | null
           costPrice: number
           createdAt: string
@@ -701,12 +610,18 @@ export type Database = {
           id: string
           imageurl: string | null
           inStock: number
+          lastRestockDate: string | null
+          leadTimeDays: number | null
+          location: string | null
           maxstock: number | null
           minStock: number | null
           name: string
           organizationId: string
+          reorderPoint: number | null
+          reorderQuantity: number | null
           sellingPrice: number
           sku: string | null
+          supplierContact: string | null
           suppliername: string | null
           type: Database["public"]["Enums"]["MaterialType"]
           unit: string
@@ -714,6 +629,7 @@ export type Database = {
           wasteFactor: number
         }
         Insert: {
+          barcode?: string | null
           category?: string | null
           costPrice: number
           createdAt?: string
@@ -721,12 +637,18 @@ export type Database = {
           id: string
           imageurl?: string | null
           inStock?: number
+          lastRestockDate?: string | null
+          leadTimeDays?: number | null
+          location?: string | null
           maxstock?: number | null
           minStock?: number | null
           name: string
           organizationId: string
+          reorderPoint?: number | null
+          reorderQuantity?: number | null
           sellingPrice: number
           sku?: string | null
+          supplierContact?: string | null
           suppliername?: string | null
           type?: Database["public"]["Enums"]["MaterialType"]
           unit: string
@@ -734,6 +656,7 @@ export type Database = {
           wasteFactor?: number
         }
         Update: {
+          barcode?: string | null
           category?: string | null
           costPrice?: number
           createdAt?: string
@@ -741,12 +664,18 @@ export type Database = {
           id?: string
           imageurl?: string | null
           inStock?: number
+          lastRestockDate?: string | null
+          leadTimeDays?: number | null
+          location?: string | null
           maxstock?: number | null
           minStock?: number | null
           name?: string
           organizationId?: string
+          reorderPoint?: number | null
+          reorderQuantity?: number | null
           sellingPrice?: number
           sku?: string | null
+          supplierContact?: string | null
           suppliername?: string | null
           type?: Database["public"]["Enums"]["MaterialType"]
           unit?: string
@@ -816,60 +745,72 @@ export type Database = {
       }
       Order: {
         Row: {
+          actualDuration: number | null
           assigneeId: string | null
           completedat: string | null
           createdAt: string
           customerId: string | null
           deadline: string | null
+          estimatedDuration: number | null
           grandTotal: number
           id: string
           installationdate: string | null
+          installationNotes: string | null
           notes: string | null
           orderNumber: string
           organizationId: string
           priority: string | null
           progresspercent: number | null
           quotationid: string | null
+          serviceLocationId: string | null
           status: string
           totalAmount: number
           updatedAt: string
           vatAmount: number
         }
         Insert: {
+          actualDuration?: number | null
           assigneeId?: string | null
           completedat?: string | null
           createdAt?: string
           customerId?: string | null
           deadline?: string | null
+          estimatedDuration?: number | null
           grandTotal?: number
           id: string
           installationdate?: string | null
+          installationNotes?: string | null
           notes?: string | null
           orderNumber: string
           organizationId: string
           priority?: string | null
           progresspercent?: number | null
           quotationid?: string | null
+          serviceLocationId?: string | null
           status?: string
           totalAmount?: number
           updatedAt: string
           vatAmount?: number
         }
         Update: {
+          actualDuration?: number | null
           assigneeId?: string | null
           completedat?: string | null
           createdAt?: string
           customerId?: string | null
           deadline?: string | null
+          estimatedDuration?: number | null
           grandTotal?: number
           id?: string
           installationdate?: string | null
+          installationNotes?: string | null
           notes?: string | null
           orderNumber?: string
           organizationId?: string
           priority?: string | null
           progresspercent?: number | null
           quotationid?: string | null
+          serviceLocationId?: string | null
           status?: string
           totalAmount?: number
           updatedAt?: string
@@ -902,6 +843,13 @@ export type Database = {
             columns: ["quotationid"]
             isOneToOne: false
             referencedRelation: "Quotation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Order_serviceLocationId_fkey"
+            columns: ["serviceLocationId"]
+            isOneToOne: false
+            referencedRelation: "CustomerLocation"
             referencedColumns: ["id"]
           },
         ]
@@ -1057,42 +1005,78 @@ export type Database = {
       Organization: {
         Row: {
           address: string | null
+          addressLine1: string | null
+          addressLine2: string | null
+          branch: string | null
           code: string
           createdAt: string
+          district: string | null
           email: string | null
+          facebookPageId: string | null
           id: string
+          lineOAId: string | null
           logoUrl: string | null
           name: string
+          nameEN: string | null
+          nameTH: string | null
           phone: string | null
+          postalCode: string | null
+          province: string | null
+          settings: Json | null
           signatureUrl: string | null
+          subdistrict: string | null
           taxId: string | null
           updatedAt: string
           website: string | null
         }
         Insert: {
           address?: string | null
+          addressLine1?: string | null
+          addressLine2?: string | null
+          branch?: string | null
           code: string
           createdAt?: string
+          district?: string | null
           email?: string | null
+          facebookPageId?: string | null
           id: string
+          lineOAId?: string | null
           logoUrl?: string | null
           name: string
+          nameEN?: string | null
+          nameTH?: string | null
           phone?: string | null
+          postalCode?: string | null
+          province?: string | null
+          settings?: Json | null
           signatureUrl?: string | null
+          subdistrict?: string | null
           taxId?: string | null
           updatedAt: string
           website?: string | null
         }
         Update: {
           address?: string | null
+          addressLine1?: string | null
+          addressLine2?: string | null
+          branch?: string | null
           code?: string
           createdAt?: string
+          district?: string | null
           email?: string | null
+          facebookPageId?: string | null
           id?: string
+          lineOAId?: string | null
           logoUrl?: string | null
           name?: string
+          nameEN?: string | null
+          nameTH?: string | null
           phone?: string | null
+          postalCode?: string | null
+          province?: string | null
+          settings?: Json | null
           signatureUrl?: string | null
+          subdistrict?: string | null
           taxId?: string | null
           updatedAt?: string
           website?: string | null
@@ -1159,41 +1143,68 @@ export type Database = {
       }
       PaymentAccount: {
         Row: {
+          accountHolderIdCard: string | null
+          accountHolderName: string | null
+          accountHolderType: string | null
           accountName: string | null
           accountNumber: string | null
           bankName: string | null
+          canIssueTaxInvoice: boolean | null
           createdAt: string
+          disclaimer: string | null
           id: string
           isActive: boolean
           isDefault: boolean
           name: string
           organizationId: string
+          ownerRole: string | null
+          promptPayId: string | null
+          promptPayType: string | null
+          qrCodeUrl: string | null
           type: string
           updatedAt: string
         }
         Insert: {
+          accountHolderIdCard?: string | null
+          accountHolderName?: string | null
+          accountHolderType?: string | null
           accountName?: string | null
           accountNumber?: string | null
           bankName?: string | null
+          canIssueTaxInvoice?: boolean | null
           createdAt?: string
+          disclaimer?: string | null
           id?: string
           isActive?: boolean
           isDefault?: boolean
           name: string
           organizationId: string
+          ownerRole?: string | null
+          promptPayId?: string | null
+          promptPayType?: string | null
+          qrCodeUrl?: string | null
           type?: string
           updatedAt?: string
         }
         Update: {
+          accountHolderIdCard?: string | null
+          accountHolderName?: string | null
+          accountHolderType?: string | null
           accountName?: string | null
           accountNumber?: string | null
           bankName?: string | null
+          canIssueTaxInvoice?: boolean | null
           createdAt?: string
+          disclaimer?: string | null
           id?: string
           isActive?: boolean
           isDefault?: boolean
           name?: string
           organizationId?: string
+          ownerRole?: string | null
+          promptPayId?: string | null
+          promptPayType?: string | null
+          qrCodeUrl?: string | null
           type?: string
           updatedAt?: string
         }
@@ -1293,6 +1304,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          organization_id: string
           role_id: string | null
           updated_at: string | null
         }
@@ -1302,6 +1314,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          organization_id: string
           role_id?: string | null
           updated_at?: string | null
         }
@@ -1311,10 +1324,18 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          organization_id?: string
           role_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "Organization"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_role_id_fkey"
             columns: ["role_id"]
@@ -1332,7 +1353,9 @@ export type Database = {
           createdAt: string
           createdby: string | null
           customerId: string | null
+          deliveryDays: number | null
           discount: number | null
+          discountPercent: number | null
           expiresAt: string | null
           grandTotal: number
           id: string
@@ -1344,6 +1367,7 @@ export type Database = {
           status: Database["public"]["Enums"]["DocumentStatus"]
           totalAmount: number
           updatedAt: string
+          validityDays: number | null
           vatAmount: number
         }
         Insert: {
@@ -1353,7 +1377,9 @@ export type Database = {
           createdAt?: string
           createdby?: string | null
           customerId?: string | null
+          deliveryDays?: number | null
           discount?: number | null
+          discountPercent?: number | null
           expiresAt?: string | null
           grandTotal?: number
           id: string
@@ -1365,6 +1391,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["DocumentStatus"]
           totalAmount?: number
           updatedAt: string
+          validityDays?: number | null
           vatAmount?: number
         }
         Update: {
@@ -1374,7 +1401,9 @@ export type Database = {
           createdAt?: string
           createdby?: string | null
           customerId?: string | null
+          deliveryDays?: number | null
           discount?: number | null
+          discountPercent?: number | null
           expiresAt?: string | null
           grandTotal?: number
           id?: string
@@ -1386,6 +1415,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["DocumentStatus"]
           totalAmount?: number
           updatedAt?: string
+          validityDays?: number | null
           vatAmount?: number
         }
         Relationships: [
@@ -1471,12 +1501,15 @@ export type Database = {
       }
       Receipt: {
         Row: {
+          accountDisclaimer: string | null
+          accountType: string | null
           createdAt: string | null
           customerId: string
           id: string
           invoiceId: string
           notes: string | null
           organizationid: string | null
+          paymentAccountId: string | null
           paymentDate: string | null
           paymentid: string | null
           paymentMethod: string | null
@@ -1485,12 +1518,15 @@ export type Database = {
           updatedAt: string | null
         }
         Insert: {
+          accountDisclaimer?: string | null
+          accountType?: string | null
           createdAt?: string | null
           customerId: string
           id?: string
           invoiceId: string
           notes?: string | null
           organizationid?: string | null
+          paymentAccountId?: string | null
           paymentDate?: string | null
           paymentid?: string | null
           paymentMethod?: string | null
@@ -1499,12 +1535,15 @@ export type Database = {
           updatedAt?: string | null
         }
         Update: {
+          accountDisclaimer?: string | null
+          accountType?: string | null
           createdAt?: string | null
           customerId?: string
           id?: string
           invoiceId?: string
           notes?: string | null
           organizationid?: string | null
+          paymentAccountId?: string | null
           paymentDate?: string | null
           paymentid?: string | null
           paymentMethod?: string | null
@@ -1532,6 +1571,13 @@ export type Database = {
             columns: ["organizationid"]
             isOneToOne: false
             referencedRelation: "Organization"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Receipt_paymentAccountId_fkey"
+            columns: ["paymentAccountId"]
+            isOneToOne: false
+            referencedRelation: "PaymentAccount"
             referencedColumns: ["id"]
           },
           {
@@ -1685,13 +1731,13 @@ export type Database = {
     }
     Enums: {
       DocumentStatus:
-      | "DRAFT"
-      | "SENT"
-      | "PARTIAL"
-      | "PAID"
-      | "VOID"
-      | "ACCEPTED"
-      | "REJECTED"
+        | "DRAFT"
+        | "SENT"
+        | "PARTIAL"
+        | "PAID"
+        | "VOID"
+        | "ACCEPTED"
+        | "REJECTED"
       MaterialType: "VINYL" | "SUBSTRATE" | "LAMINATE" | "INK" | "OTHER"
       TransactionType: "STOCK_IN" | "STOCK_OUT" | "ADJUSTMENT"
       UnitType: "SQM" | "LINEAR_METER" | "PIECE"
@@ -1708,116 +1754,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-  ? R
-  : never
+    ? R
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
+      Insert: infer I
+    }
+    ? I
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
+      Update: infer U
+    }
+    ? U
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {

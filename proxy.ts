@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isSupabaseConfigured } from '@/lib/env'
 
 // Route permission matrix
 // Admin-only routes: user management
@@ -13,6 +14,13 @@ const MANAGER_ROUTES = ['/billing', '/invoices', '/receipts']
 // const STAFF_ROUTES = ['/kanban', '/jobs', '/stock']
 
 export async function updateSession(request: NextRequest) {
+    // Allow the app shell to render when local env is not configured yet.
+    if (!isSupabaseConfigured()) {
+        return NextResponse.next({
+            request: { headers: request.headers },
+        })
+    }
+
     let response = NextResponse.next({
         request: { headers: request.headers },
     })
@@ -55,7 +63,8 @@ export async function updateSession(request: NextRequest) {
             .eq('id', user.id)
             .single()
 
-        const roleName = (profile?.roles as any)?.name as string | undefined
+        const roles = profile?.roles as { name: string } | { name: string }[] | null | undefined
+        const roleName = Array.isArray(roles) ? roles[0]?.name : roles?.name
         const isPending = !profile?.role_id
 
         // 2) User has no role -> /pending

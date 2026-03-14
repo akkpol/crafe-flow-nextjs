@@ -1,9 +1,10 @@
 'use server'
 
 import { createClient } from '@/lib/supabase-server'
+import type { Organization } from '@/lib/types'
 import { revalidatePath } from 'next/cache'
 
-export async function getOrganization() {
+export async function getOrganization(): Promise<Organization | null> {
     const supabase = await createClient()
 
     // For now, we assume single organization or fetch the first one
@@ -18,7 +19,7 @@ export async function getOrganization() {
         return null
     }
 
-    return data
+    return data as Organization
 }
 
 export async function updateOrganization(
