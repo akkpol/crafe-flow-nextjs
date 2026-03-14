@@ -29,7 +29,7 @@ export async function getOrders(): Promise<KanbanOrderRecord[]> {
         console.error('Error fetching orders:', error)
         return []
     }
-    return data as KanbanOrderRecord[]
+    return (data as any) as KanbanOrderRecord[]
 }
 
 export async function getOrder(id: string): Promise<OrderWithRelations | null> {

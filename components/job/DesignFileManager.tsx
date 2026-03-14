@@ -56,11 +56,7 @@ export function DesignFileManager({ orderId }: DesignFileManagerProps) {
                 .from('design-files')
                 .upload(fileName, file, {
                     cacheControl: '3600',
-                    upsert: false,
-                    onUploadProgress: (p) => {
-                        const percent = (p.loaded / p.total) * 100
-                        setProgress(Math.round(percent))
-                    }
+                    upsert: false
                 })
 
             if (uploadError) throw uploadError
