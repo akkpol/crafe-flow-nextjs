@@ -83,14 +83,14 @@
 ### 1.7 Customer Profile Management
 - **Role Access:** Owner, Sales Manager, Sales Staff, Accountant, Production
 - **Micro-functions:**
-  - ⚠️ Detail Page Layout (Basic list in `customers/page.tsx`, but missing full detail page with stats/tags)
+  - ⚠️ Detail Page Layout (Has dedicated detail page in `app/customers/[id]/page.tsx`, but still missing full financial summary/tags)
     - ✅ Contact Info (Basic fields exist)
     - ⚠️ Business Info (Missing Company, Branch, Industry fields in schema)
     - ❌ Financial Info (Credit Limit, Outstanding, Payment Terms missing)
     - ❌ Outstanding warning UI
-    - ❌ Statistics
+    - ⚠️ Statistics (Basic document counts and totals shown, but not full customer KPIs)
     - ❌ Tags & Notes
-  - ❌ Order History Tab
+  - ⚠️ Order History View (Customer detail page shows quotation/order/invoice/receipt history, but no dedicated tabbed CRM layout yet)
   - ❌ Communication History Tab
   - ❌ Customer Segmentation (Auto-Tagging)
   - ❌ Credit Management (Limits, Warnings)
