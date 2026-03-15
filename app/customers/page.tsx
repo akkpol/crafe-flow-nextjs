@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,6 +24,7 @@ import {
     Building2,
     ShoppingBag,
     X,
+    ChevronRight,
 } from 'lucide-react'
 import {
     getCustomers,
@@ -291,6 +293,15 @@ export default function CustomersPage() {
                                         <MapPin className="w-3 h-3" /> {customer.address.length > 40 ? customer.address.substring(0, 40) + '...' : customer.address}
                                     </span>
                                 )}
+                            </div>
+
+                            <div className="flex justify-end border-t border-white/5 pt-3">
+                                <Button asChild variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300">
+                                    <Link href={`/customers/${customer.id}`}>
+                                        ดูประวัติ
+                                        <ChevronRight className="ml-1 h-4 w-4" />
+                                    </Link>
+                                </Button>
                             </div>
                         </div>
                     ))

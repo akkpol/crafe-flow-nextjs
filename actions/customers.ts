@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/auth'
 import { CustomerSchema } from '@/lib/schemas'
 import { z } from 'zod'
-import type { Customer } from '@/lib/types'
+import type { Customer, Invoice, Order, Quotation, Receipt } from '@/lib/types'
 
 // ============================================================
 // TYPES
@@ -15,6 +15,19 @@ export type CustomerInput = z.input<typeof CustomerSchema>
 
 /** @deprecated ใช้ Customer จาก lib/types แทน */
 export type CustomerRow = Customer
+
+export type CustomerQuotationHistory = Pick<Quotation, 'id' | 'quotationNumber' | 'createdAt' | 'status' | 'grandTotal' | 'totalAmount' | 'expiresAt'>
+export type CustomerOrderHistory = Pick<Order, 'id' | 'orderNumber' | 'createdAt' | 'status' | 'grandTotal' | 'totalAmount' | 'deadline' | 'priority'>
+export type CustomerInvoiceHistory = Pick<Invoice, 'id' | 'invoiceNumber' | 'createdAt' | 'status' | 'grandTotal' | 'totalAmount' | 'amountPaid' | 'dueDate' | 'isTaxInvoice'>
+export type CustomerReceiptHistory = Pick<Receipt, 'id' | 'receiptNumber' | 'createdAt' | 'paymentDate' | 'totalAmount' | 'paymentMethod' | 'invoiceId'>
+
+export type CustomerHistoryDetail = {
+    customer: CustomerRow
+    quotations: CustomerQuotationHistory[]
+    orders: CustomerOrderHistory[]
+    invoices: CustomerInvoiceHistory[]
+    receipts: CustomerReceiptHistory[]
+}
 
 
 // Dynamic Org ID fetching instead of hardcoded
@@ -57,6 +70,69 @@ export async function getCustomerById(id: string): Promise<CustomerRow | null> {
     }
 
     return data as CustomerRow
+}
+
+export async function getCustomerHistoryDetail(id: string): Promise<CustomerHistoryDetail | null> {
+    await requirePermission('customers')
+
+    const supabase = await createClient()
+
+    const [customerResult, quotationsResult, ordersResult, invoicesResult, receiptsResult] = await Promise.all([
+        supabase
+            .from('Customer')
+            .select('*')
+            .eq('id', id)
+            .single(),
+        supabase
+            .from('Quotation')
+            .select('id, quotationNumber, createdAt, status, grandTotal, totalAmount, expiresAt')
+            .eq('customerId', id)
+            .order('createdAt', { ascending: false }),
+        supabase
+            .from('Order')
+            .select('id, orderNumber, createdAt, status, grandTotal, totalAmount, deadline, priority')
+            .eq('customerId', id)
+            .order('createdAt', { ascending: false }),
+        supabase
+            .from('Invoice')
+            .select('id, invoiceNumber, createdAt, status, grandTotal, totalAmount, amountPaid, dueDate, isTaxInvoice')
+            .eq('customerId', id)
+            .order('createdAt', { ascending: false }),
+        supabase
+            .from('Receipt')
+            .select('id, receiptNumber, createdAt, paymentDate, totalAmount, paymentMethod, invoiceId')
+            .eq('customerId', id)
+            .order('createdAt', { ascending: false }),
+    ])
+
+    if (customerResult.error || !customerResult.data) {
+        console.error('Error fetching customer detail:', customerResult.error)
+        return null
+    }
+
+    if (quotationsResult.error) {
+        console.error('Error fetching customer quotations:', quotationsResult.error)
+    }
+
+    if (ordersResult.error) {
+        console.error('Error fetching customer orders:', ordersResult.error)
+    }
+
+    if (invoicesResult.error) {
+        console.error('Error fetching customer invoices:', invoicesResult.error)
+    }
+
+    if (receiptsResult.error) {
+        console.error('Error fetching customer receipts:', receiptsResult.error)
+    }
+
+    return {
+        customer: customerResult.data as CustomerRow,
+        quotations: (quotationsResult.data ?? []) as CustomerQuotationHistory[],
+        orders: (ordersResult.data ?? []) as CustomerOrderHistory[],
+        invoices: (invoicesResult.data ?? []) as CustomerInvoiceHistory[],
+        receipts: (receiptsResult.data ?? []) as CustomerReceiptHistory[],
+    }
 }
 
 /** ค้นหาลูกค้า */
